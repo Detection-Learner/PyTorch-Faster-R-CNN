@@ -1,0 +1,6 @@
+# ---------------------------------------------------------------------
+# PyTorch Faster R-CNN
+# Written by Jiyun Cui, Yuanshun Cui, Jie Li, Hongyu Pan and Yu Song.
+# ---------------------------------------------------------------------
+
+TRAIN.HAS_RPN: 是否使用RPN网络. 类型：bool. 数值意义：True 使用RPN, False 不是用RPN.

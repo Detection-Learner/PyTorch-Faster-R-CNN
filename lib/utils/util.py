@@ -9,3 +9,8 @@ def np_to_variable(x, is_cuda=True, dtype=torch.FloatTensor):
         v = v.cuda()
 
     return v
+
+#TODO
+def get_parameters():
+
+    pass

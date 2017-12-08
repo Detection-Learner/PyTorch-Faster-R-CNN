@@ -12,21 +12,20 @@ from layers.rpn import RPN
 from layers.rpn import proposal_target_layer
 from utils import util
 
-import basic_network
-import RCNN
+import Network
 
 class FasterRCNN(nn.Module):
 
     def __init__(self):
         super(FasterRCNN, self).__init__()
 
-        #TODO
-        # initilize parameters
+        # parameters
+        self.param = util.get_parameters()
 
         # network
-        self.basic_network = basic_network()
-        self.rpn = RPN()
-        self.rcnn = RCNN()
+        self.basic_network, self.rcnn = Network(self.param.net_name, need_layer=self.param.feature_layers, is_det=True)
+        self.rpn = RPN(self.basic_network.out_dim, self.basic_network.feat_strides)
+
         self.cls_fc = nn.Linear(self.rcnn.out_dim, self.param.num_classes)
         self.bbox_fc = nn.Linear(self.rcnn.out_dim, self.param.num_classes * 4)
 
@@ -42,7 +41,7 @@ class FasterRCNN(nn.Module):
 
         features = self.basic_network(data)
 
-        rois = self.rpn(im_info, gt_boxes, features, gt_ishard, dontcare_areas)
+        rois = self.rpn(features, im_info, gt_boxes, gt_ishard, dontcare_areas)
 
         if self.training:
             roi_data = self.proposal_target_layer(rois, gt_boxes)

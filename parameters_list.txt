@@ -4,3 +4,9 @@
 # ---------------------------------------------------------------------
 
 TRAIN.HAS_RPN: 是否使用RPN网络. 类型：bool. 数值意义：True 使用RPN, False 不是用RPN.
+
+参数文件 utils/config.py
+
+layers/rpn/rpn_layer.py 所需参数如下：
+    anchor_scales=[8, 16, 32] # anchor 的默认尺度
+    anchor_ratios=[0.5, 1, 2] # anchor 的默认变换参数

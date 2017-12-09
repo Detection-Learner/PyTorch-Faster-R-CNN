@@ -62,13 +62,14 @@ class FasterRCNN(nn.Module):
 
         features = self.basic_network(data)
 
+        # roi_pooling_data is the feature calculated by the roi_pooling layer
+        # rpn_data is the output of proposal_target_layer in the training phase, or the output of proposal_layer in the testing phase.
         if cfg.USE_FPN:
             roi_pooling_data, rpn_data = self.fpn(features, im_info, gt_boxes, gt_ishard, dontcare_areas)
         else:
             roi_pooling_data, rpn_data = self.rpn(features[0], im_info, gt_boxes, gt_ishard, dontcare_areas)
 
-        # rpn_data[0] is features
-        output = self.rcnn(roi_data)
+        output = self.rcnn(roi_pooling_data)
 
         cls_pred = self.cls_fc(output)
         cls_score = F.softmax(cls_pred)

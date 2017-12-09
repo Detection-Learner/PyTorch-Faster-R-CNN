@@ -8,11 +8,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd.Variable as Variable
 
-from layers.rpn import RPN
-from layers.rpn import proposal_target_layer
-from utils import util
+from ..layers.rpn_layer import RPN
+from ..layers.fpn_layer import FPN
+from ..utils import util
+from ..utils import config as cfg
 
-import Network
+from network import Network
 
 class FasterRCNN(nn.Module):
 
@@ -23,9 +24,15 @@ class FasterRCNN(nn.Module):
         self.param = util.get_parameters()
 
         # network
-        self.basic_network, self.rcnn = Network(self.param.net_name, need_layer=self.param.feature_layers, is_det=True)
-        self.rpn = RPN(self.basic_network.out_dim, self.basic_network.feat_strides)
+        self.basic_network, self.rcnn = Network(self.param.net_name, feature_layers=self.param.feature_layers, is_det=True)
 
+        # fpn/rpn network
+        if cfg.USE_FPN:
+            self.fpn = FPN(in_channels=self.basic_network.out_dim, feat_strides=self.basic_network.feat_strides)
+        else:
+            self.rpn = RPN(in_channels=self.basic_network.out_dim[0], feat_strides=self.basic_network.feat_strides[0])
+
+        # classification and bbox regression
         self.cls_fc = nn.Linear(self.rcnn.out_dim, self.param.num_classes)
         self.bbox_fc = nn.Linear(self.rcnn.out_dim, self.param.num_classes * 4)
 
@@ -33,42 +40,54 @@ class FasterRCNN(nn.Module):
         self.cross_entropy = None
         self.bbox_loss = None
 
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                m.weight.data.normal_(0, 0.01)
+                if m.bias is not None:
+                    m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.weight.data.normal_(0, 0.01)
+                if m.bias is not None:
+                    m.bias.data.zero_()
+
     @property
     def loss(self):
+
         return self.cross_entropy + self.bbox_loss
 
     def forward(self, data, im_info, gt_boxes=None, gt_ishard=None, dontcare_areas=None):
 
         features = self.basic_network(data)
 
-        rois = self.rpn(features, im_info, gt_boxes, gt_ishard, dontcare_areas)
+        if cfg.USE_FPN:
+            roi_pooling_data, rpn_data = self.fpn(features, im_info, gt_boxes, gt_ishard, dontcare_areas)
+        else:
+            roi_pooling_data, rpn_data = self.rpn(features[0], im_info, gt_boxes, gt_ishard, dontcare_areas)
 
-        if self.training:
-            roi_data = self.proposal_target_layer(rois, gt_boxes)
-            rois = roi_data[0]
-
-        output = self.rcnn(features, rois)
+        # rpn_data[0] is features
+        output = self.rcnn(roi_data)
 
         cls_pred = self.cls_fc(output)
         cls_score = F.softmax(cls_pred)
         bbox_pred = self.bbox_fc(output)
 
         if self.training:
-            self.cross_entropy, self.bbox_loss = self.build_loss(cls_score, bbox_pred, roi_data[1], roi_data[2], roi_data[3], roi_data[4])
+            self.cross_entropy, self.bbox_loss = self.build_loss(cls_score, bbox_pred, rpn_data[1], rpn_data[2], rpn_data[3], rpn_data[4])
+
+        return cls_score, bbox_pred, rpn_data[0]
 
     def build_loss(self, cls_score, bbox_pred, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights):
 
-        pass
+        cross_entropy = F.cross_entropy(cls_score, labels, ignore_index=-1)
 
-    @staticmethod
-    def proposal_target_layer(rpn_rois, gt_boxes, gt_ishard, dontcare_areas):
+        bbox_targets = torch.mul(bbox_targets, bbox_inside_weights)
+        bbox_pred = torch.mul(bbox_pred, bbox_inside_weights)
 
-        rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = proposal_target_layer(rpn_rois, gt_boxes, gt_ishard, dontcare_areas)
-
-        rois = util.np_to_variable(rois)
-        labels = util.np_to_variable(labels, dtype=torch.LongTensor)
-        bbox_targets = util.np_to_variable(bbox_targets)
-        bbox_inside_weights = util.np_to_variable(bbox_inside_weights)
-        bbox_outside_weights = util.np_to_variable(bbox_outside_weights)
-
-        return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
+        if int(torch.__version__.split('.')[1]) < 3:
+            pass
+        else:
+            pass
+        return cross_entropy, bbox_loss

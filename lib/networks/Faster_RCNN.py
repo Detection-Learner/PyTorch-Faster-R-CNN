@@ -23,10 +23,19 @@ class FasterRCNN(nn.Module):
         # parameters
         self.param = util.get_parameters()
 
-        # network
+        """
+        network
+
+        basic_network is used to extract the features
+        fpn/rpn network is used to calculate the proposal bounding-box and act on the features, which are extracted by the basic_network.
+        roi_pooling_layer is in the rpn network.
+        rcnn network is used to deal with the features, which are extracted by the roi pooling.
+        """
+
+        # get the basic_network and rcnn network
         self.basic_network, self.rcnn = Network(self.param.net_name, feature_layers=self.param.feature_layers, is_det=True)
 
-        # fpn/rpn network
+        # FPN/RPN network
         if cfg.USE_FPN:
             self.fpn = FPN(in_channels=self.basic_network.out_dim, feat_strides=self.basic_network.feat_strides)
         else:

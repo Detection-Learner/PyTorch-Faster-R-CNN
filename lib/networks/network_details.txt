@@ -1,28 +1,28 @@
 basic_network：
 	
-	主干网络，用于提取feature，例如VGG-16，basic_network为全连接层之前的所有层。
+	主干网络，用于提取feature，例如VGG-16，basic_network为全连接层之前的所有层
 	
-	成员变量：  out_dim，需要输出的层对应的维度大小。类型：list
-				feat_strides：需要输出的层对应的感受野大小。类型：list
+	成员变量: out_dim，需要输出的层对应的维度大小。类型：list, list中为int
+	          feat_strides：需要输出的层对应的感受野大小。类型：list，list中为int
 	方法：
-		__init__：
+		__init__:
 			输入：feature_layers，需要网络输出的层的名称。类型：list
-		forward：
-			输入：data，图像数据。类型：tensor
-			输出：需要输出的层的特征。类型：list，list中为tensor
+		forward:
+			输入: data，图像数据。类型：tensor
+			输出: 需要输出的层的特征。类型：list，list中为tensor
 
 rcnn：
 
 	后续处理的网络。与basic_network共同组成整个基础结构。例如VGG-16,rcnn为除去最后分类的全连接层以外的其他全连接层。
 	
-	成员变量：out_dim，输出的特征的维度大小。类型，int
+	成员变量：out_dim，输出的特征的channel维度大小。类型，int
 	
 	方法：
-		__init__：
+		__init__:
 			
 		forward:
-			输入：roi_pooling_data，经过roi pooling之后的特征。类型：tensor
-			输出：用于分类和回归的特征。类型：tensor
+			输入: roi_pooling_data，经过roi pooling之后的特征。类型：tensor
+			输出: 用于分类和回归的特征。类型：tensor
 
 RPN：
 	
@@ -30,12 +30,15 @@ RPN：
 	
 	方法：
 		
-		__init__：
+		__init__:
+		 	输入: in_channel, basic_network产生的对应尺度的输出的channel维度大小, 类型，int
+			      feat_stride, 对应输出的感受野大小，类型，int
+
 		
 		forward:
 			输入：basic_network产生的某一个尺度的输出、im_info、gt_boxes
-			输出：	roi_pooling_data，roi pooling处理后的特征
-					rpn_data，训练期间为proposal_target_layer产生的rois，labels。bbox_targets，bbox_inside_weights，bbox_outside_weights组成的list。测试期间为proposal_layer 产生的rois
+			输出：roi_pooling_data，roi pooling处理后的特征
+					  rpn_data，训练期间为proposal_target_layer产生的rois，labels。bbox_targets，bbox_inside_weights，bbox_outside_weights组成的list。测试期间为proposal_layer 产生的rois
 	
 FPN:
 	
@@ -43,10 +46,11 @@ FPN:
 	
 	方法：
 		
-		__init__：
+		__init__:
+		 	输入: in_channels, basic_network产生的对应尺度的输出的channel维度大小, 类型，list, list中为int
+			      feat_strides, 对应输出的感受野大小，类型，list，list中为int
 		
 		forward:
 			输入：basic_network产生的所有尺度的输出、im_info、gt_boxes
-			输出：	roi_pooling_data，所有RPN的roi_pooling_data经过concate之后的结果
-					rpn_data（为方便后续代码处理，也叫rpn_data）,所有RPN的rpn_data，分别将对应内容concate起来。
-					
+			输出：roi_pooling_data，所有RPN的roi_pooling_data经过concate之后的结果
+		        rpn_data（为方便后续代码处理，也叫rpn_data）,所有RPN的rpn_data，分别将对应内容concate起来。

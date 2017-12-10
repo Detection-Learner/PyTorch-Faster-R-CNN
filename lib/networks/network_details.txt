@@ -38,7 +38,7 @@ RPN：
 		forward:
 			输入：basic_network产生的某一个尺度的输出、im_info、gt_boxes
 			输出：roi_pooling_data，roi pooling处理后的特征
-					  rpn_data，训练期间为proposal_target_layer产生的rois，labels。bbox_targets，bbox_inside_weights，bbox_outside_weights组成的list。测试期间为proposal_layer 产生的rois
+            rpn_data，训练期间为proposal_target_layer产生的rois，labels。bbox_targets，bbox_inside_weights，bbox_outside_weights组成的list。测试期间为proposal_layer 产生的rois
 	
 FPN:
 	
@@ -53,4 +53,4 @@ FPN:
 		forward:
 			输入：basic_network产生的所有尺度的输出、im_info、gt_boxes
 			输出：roi_pooling_data，所有RPN的roi_pooling_data经过concate之后的结果
-		        rpn_data（为方便后续代码处理，也叫rpn_data）,所有RPN的rpn_data，分别将对应内容concate起来。
+            rpn_data（为方便后续代码处理，也叫rpn_data）,所有RPN的rpn_data，分别将对应内容concate起来。

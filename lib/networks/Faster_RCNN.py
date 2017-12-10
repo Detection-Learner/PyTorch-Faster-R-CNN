@@ -8,8 +8,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd.Variable as Variable
 
-from ..layers.rpn_layer import RPN
-from ..layers.fpn_layer import FPN
+from ..layers.rpn.rpn_layer import RPN
+from ..layers.rpn.fpn_layer import FPN
+from ..layers.loss.my_smooth_L1_loss.my_smooth_L1_loss import MySmoothL1LossFunction
+
 from ..utils import util
 from ..utils import config as cfg
 
@@ -69,6 +71,7 @@ class FasterRCNN(nn.Module):
 
     def forward(self, data, im_info, gt_boxes=None, gt_ishard=None, dontcare_areas=None):
 
+        # extract the features
         features = self.basic_network(data)
 
         # roi_pooling_data is the feature calculated by the roi_pooling layer
@@ -89,15 +92,11 @@ class FasterRCNN(nn.Module):
 
         return cls_score, bbox_pred, rpn_data[0]
 
+    # calculate the classification loss and bounding-box delta regression loss
     def build_loss(self, cls_score, bbox_pred, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights):
 
         cross_entropy = F.cross_entropy(cls_score, labels, ignore_index=-1)
 
-        bbox_targets = torch.mul(bbox_targets, bbox_inside_weights)
-        bbox_pred = torch.mul(bbox_pred, bbox_inside_weights)
+        bbox_loss = MySmoothL1LossFunction(bbox_pred_with_weights, bbox_targets_with_weights, bbox_inside_weights, bbox_outside_weights)
 
-        if int(torch.__version__.split('.')[1]) < 3:
-            pass
-        else:
-            pass
         return cross_entropy, bbox_loss

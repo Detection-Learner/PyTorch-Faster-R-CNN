@@ -58,7 +58,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, feat_stride=16
 
     # Generate anchors
     _anchors = generate_anchors(
-        base_size=feat_stride, ratios=anchor_ratios, scales=np.array(anchor_scales))
+        base_size=cfg.ANCHOR_BASE_SIZE, ratios=anchor_ratios, scales=np.array(anchor_scales))
     # Get anchors numbers
     _num_anchors = _anchors.shape[0]
 

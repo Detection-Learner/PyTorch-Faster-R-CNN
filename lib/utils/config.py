@@ -34,6 +34,7 @@ cfg = __C
 # region proposal network (RPN) or not
 __C.USE_FPN = False
 __C.IS_RPN = True
+__C.ANCHOR_BASE_SIZE = 16
 __C.ANCHOR_SCALES = [8, 16, 32]
 __C.ANCHOR_RATIOS = [0.5, 1, 2]
 __C.NCLASSES = 21

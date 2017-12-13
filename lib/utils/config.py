@@ -31,12 +31,24 @@ cfg = __C
 # Training options
 #
 
-# region proposal network (RPN) or not
+# region feature pyramid network (FPN) or not
 __C.USE_FPN = False
+# region proposal network (RPN) or not
 __C.IS_RPN = True
+# anchor base size, usually needn't to change it
+# used in proposal_layer and anchor_target_layer
 __C.ANCHOR_BASE_SIZE = 16
+# anchor scales to generate anchors
+# used in proposal_layer and anchor_target_layer
 __C.ANCHOR_SCALES = [8, 16, 32]
+# anchor ratios to generate anchors
+# used in proposal_layer and anchor_target_layer
 __C.ANCHOR_RATIOS = [0.5, 1, 2]
+# allowed_border to anchors, which means that allow boxes to sit over the edge by a small amount
+# used in anchor_target_layer
+__C.ALLOWED_BORDER = 0
+
+# numbers of class
 __C.NCLASSES = 21
 
 # multiscale training and testing

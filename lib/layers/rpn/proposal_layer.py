@@ -39,7 +39,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, feat_stride=16
     ----------
     Returns
     ----------
-    rpn_rois : [B, (H x W x A, 5)] e.g. [0, x1, y1, x2, y2]
+    rpn_rois : [B, (H x W x A, 5)] e.g. [image_id, x1, y1, x2, y2]
 
     # Algorithm:
     #

@@ -4,9 +4,10 @@
 # Written by Hongyu Pan
 #--------------------------------------
 import numpy as np
-from utils.config import cfg
-from utils.transform_bbox import bbox_transform
-from utils.bbox import bbox_overlaps
+from ...utils.config import cfg
+from ...utils.transform_bbox import bbox_transform
+from ...utils.bbox import bbox_overlaps
+
 
 def proposal_target_layer(rpn_rois, gt_boxes, num_classes, gt_ishard, dontcare_areas):
     """
@@ -33,7 +34,8 @@ def proposal_target_layer(rpn_rois, gt_boxes, num_classes, gt_ishard, dontcare_a
     rois_blob = np.zeros((0, 5), dtype=np.float32)
     labels_blob = np.zeros((0), dtype=np.float32)
     bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
-    bbox_inside_weights_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
+    bbox_inside_weights_blob = np.zeros(
+        bbox_targets_blob.shape, dtype=np.float32)
 
     all_rois = rpn_rois
     batch_size = len(all_rois)
@@ -46,24 +48,27 @@ def proposal_target_layer(rpn_rois, gt_boxes, num_classes, gt_ishard, dontcare_a
         # include ground-truth boxes in the set of candidate rois
         tmp_rois = all_rois[i]
         tmp_rois = np.vstack(
-                (tmp_rois, np.hstack((img_id, gt_boxes[i][:,:-1])))
-            )
+            (tmp_rois, np.hstack((img_id, gt_boxes[i][:, :-1])))
+        )
 
         rois_per_image = cfg.TRAIN.BATCH_SIZE / batch_size
         fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
         # Sample rois with classification lables and bounding box regression
         labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
-                tmp_rois, gt_boxes[i], fg_rois_per_image, rois_per_image, num_classes)
+            tmp_rois, gt_boxes[i], fg_rois_per_image, rois_per_image, num_classes)
 
         rois_blob = np.vstack((rois_blob, rois))
         labels_blob = np.hstack((labels_blob, labels))
         bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
-        bbox_inside_weights_blob = np.vstack((bbox_inside_weights_blob, bbox_inside_weights))
+        bbox_inside_weights_blob = np.vstack(
+            (bbox_inside_weights_blob, bbox_inside_weights))
 
-    bbox_outside_weights_blob = np.array(bbox_inside_weights_blob > 0).astype(np.float32)
+    bbox_outside_weights_blob = np.array(
+        bbox_inside_weights_blob > 0).astype(np.float32)
 
     return rois_blob, labels_blob, bbox_targets_blob, bbox_inside_weights_blob, bbox_outside_weights_blob
+
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):
     """
@@ -90,6 +95,7 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
 
     return bbox_targets, bbox_inside_weights
 
+
 def _compute_targets(ex_rois, gt_rois, labels):
     """
     Compute bounding-box regression targets for an image.
@@ -102,11 +108,12 @@ def _compute_targets(ex_rois, gt_rois, labels):
     if cfg.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED:
         # Optionally normalize targets by a precomputed mean and stdev
         targets = ((targets - np.array(cfg.TRAIN.BBOX_NORMALIZE_MEANS))
-                / np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS))
+                   / np.array(cfg.TRAIN.BBOX_NORMALIZE_STDS))
 
     # [label, dx, dy, dw, dh]
     return np.hstack(
-            (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
+        (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
+
 
 def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_classes):
     """
@@ -132,8 +139,8 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
 
     # overlaps: (rois x gt_boxes), iou
     overlaps = bbox_overlaps(
-            np.ascontiguousarray(all_rois[:, 1:5], dtype=np.float32),
-            np.ascontiguousarray(gt_boxes[:, :4], dtype=np.float32))
+        np.ascontiguousarray(all_rois[:, 1:5], dtype=np.float32),
+        np.ascontiguousarray(gt_boxes[:, :4], dtype=np.float32))
     # find the gt_boxes id, which has the max iou for each rois
     gt_assignment = overlaps.argmax(axis=1)
     # find the max iou for each rois
@@ -145,11 +152,13 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
     # Guard against the case when an image has fewer than fg_rois_per_image
     # foreground ROIs
-    fg_rois_per_image = min(fg_rois_per_image, fg_inds.size)
+    fg_rois_per_image = min(fg_rois_per_image, fg_inds.size).astype(np.int32)
     if fg_inds.size > 0:
         # randomly select fg_rois_per_image rois.
         # np.random.choice(), replace = False means there is no repeat objects in choiced.
-        fg_inds = np.random.choice(fg_inds, size=fg_rois_per_image, replace=False)
+        # print type(fg_inds[0]), type(fg_rois_per_image)
+        fg_inds = np.random.choice(
+            fg_inds, size=fg_rois_per_image, replace=False)
     # Select background ROIs as those within [BG_THRESH_LO, BG_THRESH_HI]
     bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) &
                        (max_overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
@@ -159,19 +168,21 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     bg_rois_per_this_image = min(bg_rois_per_this_image, bg_inds.size)
     # Sample background regions without replacement
     if bg_inds.size > 0:
-        bg_inds = np.random.choice(bg_inds, size=bg_rois_per_this_image, replace=False)
+        bg_inds = np.random.choice(
+            bg_inds, size=bg_rois_per_this_image, replace=False)
 
     # This indices that we're selecting (both fg and bg)
     keep_inds = np.append(fg_inds, bg_inds)
     # Select sampled values from various arrays:
     labels = labels[keep_inds]
     # Clamp labels for the background ROIs to 0
-    labels[fg_rois_per_image: ] = 0
+    labels[fg_rois_per_image:] = 0
     rois = all_rois[keep_inds]
 
     bbox_target_data = _compute_targets(
-            rois[:, 1:5], gt_boxes[gt_assignment[keep_inds], :4], labels)
+        rois[:, 1:5], gt_boxes[gt_assignment[keep_inds], :4], labels)
 
-    bbox_targets, bbox_inside_weights = _get_bbox_regression_labels(bbox_target_data, num_classes)
+    bbox_targets, bbox_inside_weights = _get_bbox_regression_labels(
+        bbox_target_data, num_classes)
 
     return labels, rois, bbox_targets, bbox_inside_weights

@@ -1,4 +1,6 @@
 #---------------------------------------------
 # PyTorch Faster R-CNN
-# Written by Hongyu Pan
+# Written by Yuanshun Cui
 #---------------------------------------------
+
+from .roi_pool import RoIPool, RoIPoolFunction

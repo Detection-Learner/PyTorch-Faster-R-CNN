@@ -231,7 +231,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
     bbox_outside_weights = [_unmap(bbox_outside_weight, total_anchors, inds_inside, fill=0)
                             for bbox_outside_weight in bbox_outside_weights]
 
-    # TODO:Processing labels
+    # Processing labels
     labels = np.array(labels).reshape((-1, height, width, A))  # (B, H, W, A)
     labels = labels.transpose(0, 3, 1, 2)  # (B, A, H, W)
     rpn_labels = labels.reshape(

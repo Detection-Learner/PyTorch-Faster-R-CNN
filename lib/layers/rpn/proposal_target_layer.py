@@ -52,7 +52,8 @@ def proposal_target_layer(rpn_rois, gt_boxes, num_classes, gt_ishard, dontcare_a
         )
 
         rois_per_image = cfg.TRAIN.BATCH_SIZE / batch_size
-        fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
+        fg_rois_per_image = int(
+            np.round(cfg.TRAIN.FG_FRACTION * rois_per_image))
 
         # Sample rois with classification lables and bounding box regression
         labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
@@ -152,7 +153,8 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
     # Guard against the case when an image has fewer than fg_rois_per_image
     # foreground ROIs
-    fg_rois_per_image = min(fg_rois_per_image, fg_inds.size).astype(np.int32)
+    fg_rois_per_image = min(
+        fg_rois_per_image, fg_inds.size)  # .astype(np.int32)
     if fg_inds.size > 0:
         # randomly select fg_rois_per_image rois.
         # np.random.choice(), replace = False means there is no repeat objects in choiced.

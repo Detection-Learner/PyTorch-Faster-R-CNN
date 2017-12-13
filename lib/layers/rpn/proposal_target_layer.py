@@ -22,19 +22,18 @@ def proposal_target_layer(rpn_rois, gt_boxes, num_classes, gt_ishard, dontcare_a
     ----------
     Returns
     ----------
-    rois_list: (B, fg_inds_i + bg_inds_i, 5) [img_id, x1, y1, x2, y2] list, ndarray in list
-    labels_list: (B, fg_inds_i + bg_inds_i) {0, 1, num_classes - 1} list, ndarray in list
-    bbox_targets_list: (B, fg_inds_i + bg_inds_i, num_classes x 4) [dx1, dy1, dx2, dy2] list, ndarray in list
-    bbox_inside_weights_list: (B, fg_inds_i + bg_inds_i, num_classes x 4) 0, 1 masks for computing loss
-    bbox_outside_weights_list: (B, fg_inds_i + bg_inds_i, num_classes x 4) 0, 1 masks for computing loss
+    rois_list: (sum{B}{i=1}{fg_inds_i + bg_inds_i}, 5) [img_id, x1, y1, x2, y2] ndarray
+    labels_list: (sum{B}{i=1}{fg_inds_i + bg_inds_i}) {0, 1, num_classes - 1} ndarray
+    bbox_targets_list: (sum{B}{i=1}{fg_inds_i + bg_inds_i}, num_classes x 4) [dx1, dy1, dx2, dy2] ndarray
+    bbox_inside_weights_list: (sum{B}{i=1}{fg_inds_i + bg_inds_i}, num_classes x 4) 0, 1 masks for computing loss, ndarray
+    bbox_outside_weights_list: (sum{B}{i=1}{fg_inds_i + bg_inds_i}, num_classes x 4) 0, 1 masks for computing loss, ndarray
     ----------
     """
 
-    rois_list = []
-    labels_list = []
-    bbox_targets_list = []
-    bbox_inside_weights_list = []
-    bbox_outside_weights_list = []
+    rois_blob = np.zeros((0, 5), dtype=np.float32)
+    labels_blob = np.zeros((0), dtype=np.float32)
+    bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
+    bbox_inside_weights_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
 
     all_rois = rpn_rois
     batch_size = len(all_rois)
@@ -50,21 +49,21 @@ def proposal_target_layer(rpn_rois, gt_boxes, num_classes, gt_ishard, dontcare_a
                 (tmp_rois, np.hstack((img_id, gt_boxes[i][:,:-1])))
             )
 
-        rois_per_image = cfg.TRAIN.BATCH_SIZE
+        rois_per_image = cfg.TRAIN.BATCH_SIZE / batch_size
         fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
         # Sample rois with classification lables and bounding box regression
         labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
                 tmp_rois, gt_boxes[i], fg_rois_per_image, rois_per_image, num_classes)
-        bbox_outside_weights = np.array(bbox_inside_weights > 0).astype(np.float32)
 
-        labels_list.append(labels)
-        rois_list.append(rois)
-        bbox_targets_list.append(bbox_targets)
-        bbox_inside_weights_list.append(bbox_inside_weights)
-        bbox_outside_weights_list.append(bbox_outside_weights)
+        rois_blob = np.vstack((rois_blob, rois))
+        labels_blob = np.hstack((labels_blob, labels))
+        bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
+        bbox_inside_weights_blob = np.vstack((bbox_inside_weights_blob, bbox_inside_weights))
 
-    return rois_list, labels_list, bbox_targets_list, bbox_inside_weights_list, bbox_outside_weights_list
+    bbox_outside_weights_blob = np.array(bbox_inside_weights_blob > 0).astype(np.float32)
+
+    return rois_blob, labels_blob, bbox_targets_blob, bbox_inside_weights_blob, bbox_outside_weights_blob
 
 def _get_bbox_regression_labels(bbox_target_data, num_classes):
     """
@@ -141,7 +140,6 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     max_overlaps = overlaps.max(axis=1)
     # get the max iou gt_boxes' label for each rois
     labels = gt_boxes[gt_assignment, -1]
-    print overlaps
 
     # Select foreground ROIs as those with >= FG_THRESH overlap
     fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]

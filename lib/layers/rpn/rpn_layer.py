@@ -5,7 +5,6 @@ import math
 import numpy as np
 
 from ...utils.config import cfg
-# TODO:  anchor_target_layer, ROIPooling
 from .proposal_layer import proposal_layer
 from .anchor_target_layer import anchor_target_layer
 from .proposal_target_layer import proposal_target_layer
@@ -40,7 +39,7 @@ class RPN(nn.Module):
 
         # loss
         self.cross_entropy = None
-        self.los_box = None
+        self.loss_box = None
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -94,10 +93,10 @@ class RPN(nn.Module):
             rpn_data_out = [rois_out]
 
         if rpn_cls_score.is_cuda:
-            if isinstance(rpn_bbox_pred.data, torch.FloatTensor):
+            if isinstance(rpn_bbox_pred.data, torch.cuda.FloatTensor):
                 rois_out = torch.autograd.Variable(
                     torch.FloatTensor(rois_out)).cuda()
-            elif isinstance(rpn_bbox_pred.data, torch.DoubleTensor):
+            elif isinstance(rpn_bbox_pred.data, torch.cuda.DoubleTensor):
                 rois_out = torch.autograd.Variable(
                     torch.DoubleTensor(rois_out)).cuda()
         else:
@@ -125,7 +124,7 @@ class RPN(nn.Module):
             rpn_label = torch.autograd.Variable(
                 torch.LongTensor(rpn_label.reshape(-1)))
         # build loss
-        if float(torch.__version__[:3]) < 0.6:
+        if float(torch.__version__[:3]) < 0.3:
             # Find the non -1 label index
             if rpn_cls_score.is_cuda:
                 rpn_keep = torch.autograd.Variable(
@@ -144,14 +143,14 @@ class RPN(nn.Module):
 
         # box loss
         if rpn_bbox_pred.is_cuda:
-            if isinstance(rpn_bbox_pred.data, torch.FloatTensor):
+            if isinstance(rpn_bbox_pred.data, torch.cuda.FloatTensor):
                 rpn_bbox_targets = torch.autograd.Variable(
                     torch.FloatTensor(rpn_bbox_targets)).cuda()
                 rpn_bbox_inside_weights = torch.autograd.Variable(
                     torch.FloatTensor(rpn_bbox_inside_weights)).cuda()
                 rpn_bbox_outside_weights = torch.autograd.Variable(
                     torch.FloatTensor(rpn_bbox_outside_weights)).cuda()
-            elif isinstance(rpn_bbox_pred.data, torch.DoubleTensor):
+            elif isinstance(rpn_bbox_pred.data, torch.cuda.DoubleTensor):
                 rpn_bbox_targets = torch.autograd.Variable(
                     torch.DoubleTensor(rpn_bbox_targets)).cuda()
                 rpn_bbox_inside_weights = torch.autograd.Variable(

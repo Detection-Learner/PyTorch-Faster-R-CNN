@@ -9,14 +9,31 @@ from lib.layers.rpn.rpn_layer import RPN
 from lib.layers.rpn.fpn_layer import FPN
 from lib.layers.loss.wrap_smooth_l1_loss.wrap_smooth_l1_loss import WrapSmoothL1Loss
 from lib.layers.loss.wrap_smooth_l1_loss_py import WrapSmoothL1Loss as WrapSmoothL1Loss_py
+
+from lib.layers.roi_data_layer.image_loader import ImageLoader, detection_collate
 import torch
 from torch.autograd import gradcheck
 import torch.nn.functional as F
 
 import numpy as np
 
+def test_image_loader():
+
+    loader = ImageLoader('img_list.txt', 'ann_list.txt')
+    
+    train_loader = torch.utils.data.DataLoader(
+            loader,
+            batch_size=10, shuffle=True,
+            num_workers=3, collate_fn=detection_collate, pin_memory=True)
+    
+    for i, (imgs, im_infos, gt_boxes) in enumerate(train_loader):
+        print imgs.shape
+        print len(im_infos), [len(im_info) for im_info in im_infos]
+        print len(gt_boxes), [len(gt_box) for gt_box in gt_boxes]
+
 
 def test_proposal_layer():
+
     rpn_cls_prob = np.random.rand(15, 9 * 2, 64, 86)
     rpn_bbox_pred = np.random.rand(15, 9 * 4, 64, 86)
     im_info = np.array([480, 1200, 0.5] * 15).reshape(-1, 3)
@@ -27,6 +44,7 @@ def test_proposal_layer():
 
 
 def test_anchor_target_layer():
+
     rpn_cls_prob = np.random.rand(15, 9 * 2, 64, 86)
     gt_boxes = [np.random.randint(
         1, 255, (np.random.randint(1, 10), 5)) for i in range(15)]
@@ -43,6 +61,7 @@ def test_anchor_target_layer():
 
 
 def test_rpn():
+
     rpn = RPN(10, in_channel=5)
     optimizer = torch.optim.SGD(rpn.parameters(), 0.01)
     rpn.cuda()

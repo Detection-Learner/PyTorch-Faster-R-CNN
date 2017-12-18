@@ -6,13 +6,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.autograd.Variable as Variable
+from torch.autograd import Variable
 
 from ..layers.rpn.rpn_layer import RPN
 from ..layers.rpn.fpn_layer import FPN
 from ..layers.loss.wrap_smooth_l1_loss.wrap_smooth_l1_loss import WrapSmoothL1Loss
 
-from ..utils import util
 from ..utils import config as cfg
 
 from network import Network
@@ -20,24 +19,30 @@ from network import Network
 
 class FasterRCNN(nn.Module):
 
+    #def __init__(self, param_file_path):
     def __init__(self):
         super(FasterRCNN, self).__init__()
 
         # parameters
-        self.param = util.get_parameters()
+        # self.param = _get_parameters(param_file_path)
 
         """
         network
+
+        needs: net_name, feature_layers, num_classes
 
         basic_network is used to extract the features
         fpn/rpn network is used to calculate the proposal bounding-box and act on the features, which are extracted by the basic_network.
         roi_pooling_layer is in the rpn network.
         rcnn network is used to deal with the features, which are extracted by the roi pooling.
+
         """
 
         # get the basic_network and rcnn network
+        # self.basic_network, self.rcnn = Network(
+            # self.param.net_name, feature_layers=self.param.feature_layers, is_det=True)
         self.basic_network, self.rcnn = Network(
-            self.param.net_name, feature_layers=self.param.feature_layers, is_det=True)
+            cfg.net_name, feature_layers=cfg.feature_layers, is_det=True)
 
         # FPN/RPN network
         if cfg.USE_FPN:
@@ -48,8 +53,8 @@ class FasterRCNN(nn.Module):
                 in_channels=self.basic_network.out_dim[0], feat_strides=self.basic_network.feat_strides[0])
 
         # classification and bbox regression
-        self.cls_fc = nn.Linear(self.rcnn.out_dim, self.param.num_classes)
-        self.bbox_fc = nn.Linear(self.rcnn.out_dim, self.param.num_classes * 4)
+        self.cls_fc = nn.Linear(self.rcnn.out_dim, cfg.num_classes)
+        self.bbox_fc = nn.Linear(self.rcnn.out_dim, cfg.num_classes * 4)
 
         # loss
         self.wrap_smooth_l1_loss = WrapSmoothL1Loss(sigma=1.0)
@@ -142,3 +147,4 @@ class FasterRCNN(nn.Module):
             bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
         return cross_entropy, bbox_loss
+

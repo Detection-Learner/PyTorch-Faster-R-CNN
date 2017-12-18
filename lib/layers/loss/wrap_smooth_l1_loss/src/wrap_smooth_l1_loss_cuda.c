@@ -19,14 +19,14 @@ int wrap_smooth_l1_loss_forward_cuda(float sigma, int size_average,
     if (!THCudaTensor_isSameSizeAs(state, inputs, targets))
         return 0;
     THCudaTensor * unsumLoss = THCudaTensor_new(state);//THCudaTensor_newWithTensor(state, inputs);
-		THCAssertSameGPU(THCudaTensor_checkGPU(state, 2, unsumLoss, inputs));
-		THCudaTensor_resizeAs(state, unsumLoss, inputs);
-		THCudaTensor_zero(unsumLoss, inputs);
-		/*
-		 *
-		 *  < 0.3 not support THCudaTensor_zerosLike() 
-		 *  
-		*/
+    THCAssertSameGPU(THCudaTensor_checkGPU(state, 2, unsumLoss, inputs));
+    THCudaTensor_resizeAs(state, unsumLoss, inputs);
+    THCudaTensor_zero(state, unsumLoss);
+    /*
+     *
+     *  < 0.3 not support THCudaTensor_zerosLike()
+     *
+    */
     //THCudaTensor_zerosLike(state, unsumLoss, inputs);
     //THCudaTensor_fill(state, unsumLoss, 0);
     // data dim

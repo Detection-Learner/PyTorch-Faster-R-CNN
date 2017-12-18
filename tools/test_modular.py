@@ -124,4 +124,4 @@ def test_warp_smooth_l1_loss_backward():
 
 
 if __name__ == '__main__':
-    test_fpn()
+    test_warp_smooth_l1_loss()

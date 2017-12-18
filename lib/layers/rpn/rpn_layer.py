@@ -9,6 +9,7 @@ from .proposal_layer import proposal_layer
 from .anchor_target_layer import anchor_target_layer
 from .proposal_target_layer import proposal_target_layer
 from ..roi_pooling import RoIPool
+from ..loss.wrap_smooth_l1_loss.wrap_smooth_l1_loss import WrapSmoothL1Loss
 
 
 class RPN(nn.Module):
@@ -38,6 +39,7 @@ class RPN(nn.Module):
         self.roi_pooling = RoIPool(7, 7, 1.0 / self.feat_stride)
 
         # loss
+        self.warp_smooth_l1_loss = WrapSmoothL1Loss(sigma=3.0)
         self.cross_entropy = None
         self.loss_box = None
 
@@ -172,12 +174,11 @@ class RPN(nn.Module):
                     torch.DoubleTensor(rpn_bbox_inside_weights))
                 rpn_bbox_outside_weights = torch.autograd.Variable(
                     torch.DoubleTensor(rpn_bbox_outside_weights))
-        rpn_bbox_targets = torch.mul(rpn_bbox_targets, rpn_bbox_inside_weights)
-        rpn_bbox_pred = torch.mul(rpn_bbox_pred, rpn_bbox_inside_weights)
+        # rpn_bbox_targets = torch.mul(rpn_bbox_targets, rpn_bbox_inside_weights)
+        # rpn_bbox_pred = torch.mul(rpn_bbox_pred, rpn_bbox_inside_weights)
         # build loss TODO:
-        rpn_loss_box = 0
-        # rpn_loss_box = WarpSmoothL1Loss(
-        #     pn_bbox_pred, rpn_bbox_targets, sigma=1)
+        rpn_loss_box = self.warp_smooth_l1_loss(
+            rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights)
         return rpn_cross_entropy, rpn_loss_box
 
     @property

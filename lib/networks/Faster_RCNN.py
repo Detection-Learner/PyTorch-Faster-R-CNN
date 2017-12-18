@@ -10,12 +10,13 @@ import torch.autograd.Variable as Variable
 
 from ..layers.rpn.rpn_layer import RPN
 from ..layers.rpn.fpn_layer import FPN
-from ..layers.loss.my_smooth_L1_loss.my_smooth_L1_loss import MySmoothL1LossFunction
+from ..layers.loss.wrap_smooth_l1_loss.wrap_smooth_l1_loss import WrapSmoothL1Loss
 
 from ..utils import util
 from ..utils import config as cfg
 
 from network import Network
+
 
 class FasterRCNN(nn.Module):
 
@@ -35,19 +36,23 @@ class FasterRCNN(nn.Module):
         """
 
         # get the basic_network and rcnn network
-        self.basic_network, self.rcnn = Network(self.param.net_name, feature_layers=self.param.feature_layers, is_det=True)
+        self.basic_network, self.rcnn = Network(
+            self.param.net_name, feature_layers=self.param.feature_layers, is_det=True)
 
         # FPN/RPN network
         if cfg.USE_FPN:
-            self.fpn = FPN(in_channels=self.basic_network.out_dim, feat_strides=self.basic_network.feat_strides)
+            self.fpn = FPN(in_channels=self.basic_network.out_dim,
+                           feat_strides=self.basic_network.feat_strides)
         else:
-            self.rpn = RPN(in_channels=self.basic_network.out_dim[0], feat_strides=self.basic_network.feat_strides[0])
+            self.rpn = RPN(
+                in_channels=self.basic_network.out_dim[0], feat_strides=self.basic_network.feat_strides[0])
 
         # classification and bbox regression
         self.cls_fc = nn.Linear(self.rcnn.out_dim, self.param.num_classes)
         self.bbox_fc = nn.Linear(self.rcnn.out_dim, self.param.num_classes * 4)
 
         # loss
+        self.wrap_smooth_l1_loss = WrapSmoothL1Loss(sigma=1.0)
         self.cross_entropy = None
         self.bbox_loss = None
 
@@ -77,9 +82,11 @@ class FasterRCNN(nn.Module):
         # roi_pooling_data is the feature calculated by the roi_pooling layer
         # rpn_data is the output of proposal_target_layer in the training phase, or the output of proposal_layer in the testing phase.
         if cfg.USE_FPN:
-            roi_pooling_data, rpn_data = self.fpn(features, im_info, gt_boxes, gt_ishard, dontcare_areas)
+            roi_pooling_data, rpn_data = self.fpn(
+                features, im_info, gt_boxes, gt_ishard, dontcare_areas)
         else:
-            roi_pooling_data, rpn_data = self.rpn(features[0], im_info, gt_boxes, gt_ishard, dontcare_areas)
+            roi_pooling_data, rpn_data = self.rpn(
+                features[0], im_info, gt_boxes, gt_ishard, dontcare_areas)
 
         output = self.rcnn(roi_pooling_data)
 
@@ -88,15 +95,50 @@ class FasterRCNN(nn.Module):
         bbox_pred = self.bbox_fc(output)
 
         if self.training:
-            self.cross_entropy, self.bbox_loss = self.build_loss(cls_score, bbox_pred, rpn_data[1], rpn_data[2], rpn_data[3], rpn_data[4])
+            self.cross_entropy, self.bbox_loss = self.build_loss(
+                cls_score, bbox_pred, rpn_data[1], rpn_data[2], rpn_data[3], rpn_data[4])
 
         return cls_score, bbox_pred, rpn_data[0]
 
     # calculate the classification loss and bounding-box delta regression loss
     def build_loss(self, cls_score, bbox_pred, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights):
 
+        if cls_score.is_cuda:
+            labels = torch.autograd.Variable(torch.LongTensor(labels)).cuda()
+            if isinstance(rpn_bbox_pred.data, torch.cuda.FloatTensor):
+                bbox_targets = torch.autograd.Variable(
+                    torch.FloatTensor(bbox_targets)).cuda()
+                bbox_inside_weights = torch.autograd.Variable(
+                    torch.FloatTensor(bbox_inside_weights)).cuda()
+                bbox_outside_weights = torch.autograd.Variable(
+                    torch.FloatTensor(bbox_outside_weights)).cuda()
+            elif isinstance(bbox_pred.data, torch.cuda.DoubleTensor):
+                bbox_targets = torch.autograd.Variable(
+                    torch.DoubleTensor(bbox_targets)).cuda()
+                bbox_inside_weights = torch.autograd.Variable(
+                    torch.DoubleTensor(bbox_inside_weights)).cuda()
+                bbox_outside_weights = torch.autograd.Variable(
+                    torch.DoubleTensor(bbox_outside_weights)).cuda()
+        else:
+            labels = torch.autograd.Variable(torch.LongTensor(labels))
+            if isinstance(bbox_pred.data, torch.FloatTensor):
+                bbox_targets = torch.autograd.Variable(
+                    torch.FloatTensor(bbox_targets))
+                bbox_inside_weights = torch.autograd.Variable(
+                    torch.FloatTensor(bbox_inside_weights))
+                bbox_outside_weights = torch.autograd.Variable(
+                    torch.FloatTensor(bbox_outside_weights))
+            elif isinstance(bbox_pred.data, torch.DoubleTensor):
+                bbox_targets = torch.autograd.Variable(
+                    torch.DoubleTensor(bbox_targets))
+                bbox_inside_weights = torch.autograd.Variable(
+                    torch.DoubleTensor(bbox_inside_weights))
+                bbox_outside_weights = torch.autograd.Variable(
+                    torch.DoubleTensor(bbox_outside_weights))
+
         cross_entropy = F.cross_entropy(cls_score, labels, ignore_index=-1)
 
-        bbox_loss = MySmoothL1LossFunction(bbox_pred_with_weights, bbox_targets_with_weights, bbox_inside_weights, bbox_outside_weights)
+        bbox_loss = self.wrap_smooth_l1_loss(
+            bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights)
 
         return cross_entropy, bbox_loss

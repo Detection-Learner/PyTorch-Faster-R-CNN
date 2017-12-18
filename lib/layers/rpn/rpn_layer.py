@@ -126,22 +126,8 @@ class RPN(nn.Module):
             rpn_label = torch.autograd.Variable(
                 torch.LongTensor(rpn_label.reshape(-1)))
         # build loss
-        if float(torch.__version__[:3]) < 0.3:
-            # Find the non -1 label index
-            if rpn_cls_score.is_cuda:
-                rpn_keep = torch.autograd.Variable(
-                    rpn_label.data.ne(-1).nonzero().squeeze()).cuda()
-            else:
-                rpn_keep = torch.autograd.Variable(
-                    rpn_label.data.ne(-1).nonzero().squeeze())
-            rpn_cls_score = torch.index_select(rpn_cls_score, 0, rpn_keep)
-            rpn_label = torch.index_select(rpn_label, 0, rpn_keep)
-
-            # fg_cnt = torch.sum(rpn_label.data.ne(0))
-            rpn_cross_entropy = F.cross_entropy(rpn_cls_score, rpn_label)
-        else:  # torch version > 0.2.0
-            rpn_cross_entropy = F.cross_entropy(
-                rpn_cls_score, rpn_label, ignore_index=-1)
+        rpn_cross_entropy = F.cross_entropy(
+            rpn_cls_score, rpn_label, ignore_index=-1)
 
         # box loss
         if rpn_bbox_pred.is_cuda:
@@ -174,9 +160,7 @@ class RPN(nn.Module):
                     torch.DoubleTensor(rpn_bbox_inside_weights))
                 rpn_bbox_outside_weights = torch.autograd.Variable(
                     torch.DoubleTensor(rpn_bbox_outside_weights))
-        # rpn_bbox_targets = torch.mul(rpn_bbox_targets, rpn_bbox_inside_weights)
-        # rpn_bbox_pred = torch.mul(rpn_bbox_pred, rpn_bbox_inside_weights)
-        # build loss TODO:
+        # build loss
         rpn_loss_box = self.warp_smooth_l1_loss(
             rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights)
         return rpn_cross_entropy, rpn_loss_box

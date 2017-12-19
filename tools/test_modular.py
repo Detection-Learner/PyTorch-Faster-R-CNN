@@ -4,6 +4,7 @@ CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(CURRENT_PATH, '..'))
 from lib.layers.rpn.proposal_layer import proposal_layer
 from lib.layers.rpn.anchor_target_layer import anchor_target_layer
+from lib.layers.rpn.proposal_target_layer import proposal_target_layer
 
 from lib.layers.rpn.rpn_layer import RPN
 from lib.layers.rpn.fpn_layer import FPN
@@ -17,6 +18,9 @@ import torch.nn.functional as F
 
 import numpy as np
 import matplotlib.pyplot as plt
+import random
+
+from lib.utils.config import cfg
 
 
 def test_image_loader():
@@ -35,13 +39,13 @@ def test_image_loader():
         # print len(gt_boxes), [len(gt_box) for gt_box in gt_boxes]
         # add
         len_batch = len(gt_boxes)
-        for i in range(len_batch):
-            img = imgs.numpy()[i].transpose(1, 2, 0)
-            gt_box = gt_boxes[i]
+        for batch_idx in range(len_batch):
+            img = imgs.numpy()[batch_idx].transpose(1, 2, 0)
+            gt_box = gt_boxes[batch_idx]
             print type(gt_boxes), gt_box.shape
             print type(img)
-            img *= 128
-            img += 128
+            # img *= 128
+            img += cfg.PIXEL_MEANS
             img /= 255
             plt.imshow(img)
             for box in gt_box:
@@ -62,6 +66,37 @@ def test_proposal_layer():
     blobs = proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, 'TRAIN')
     print len(blobs), blobs[0].shape
     print blobs[1]
+
+
+def test_proposal_target_layer():
+    batch_size = 3
+    H = 3
+    W = 3
+    A = 3
+    rpn_rois = np.random.rand(batch_size * H * W * A * 5)
+    rpn_rois = rpn_rois.reshape((batch_size, H * W * A, 5))
+    rois = []
+    for i in range(batch_size):
+        rpn_rois[i, :, 0] = i
+        rpn_rois[i, :, 3] = rpn_rois[i, :, 1] + random.randint(0, 100)
+        rpn_rois[i, :, 4] = rpn_rois[i, :, 2] + random.randint(0, 100)
+        rois.append(rpn_rois[i])
+    gt_boxes = []
+    for i in range(1, 5):
+        gt_box = np.random.rand(i * 5)
+        gt_box = gt_box.reshape(i, 5)
+        gt_box[:, -1] = random.randint(0, 9)
+        gt_box[:, 2] = gt_box[:, 0] + random.randint(0, 100)
+        gt_box[:, 3] = gt_box[:, 1] + random.randint(0, 100)
+        gt_boxes.append(gt_box)
+    rois_list, labels_list, bbox_targets_list, bbox_inside_weights_list, bbox_outside_weights_list = proposal_target_layer(
+        rpn_rois, gt_boxes, 10, None, None)
+    print rois_list
+    print len(rois_list), rois_list.shape
+    print len(labels_list), labels_list.shape
+    print len(bbox_targets_list), bbox_targets_list.shape
+    print len(bbox_inside_weights_list), bbox_inside_weights_list.shape
+    print len(bbox_outside_weights_list), bbox_outside_weights_list.shape
 
 
 def test_anchor_target_layer():

@@ -12,7 +12,7 @@ from ..layers.rpn.rpn_layer import RPN
 from ..layers.rpn.fpn_layer import FPN
 from ..layers.loss.wrap_smooth_l1_loss.wrap_smooth_l1_loss import WrapSmoothL1Loss
 
-from ..utils import config as cfg
+from ..utils.config import cfg
 
 from network import Network
 
@@ -42,19 +42,18 @@ class FasterRCNN(nn.Module):
         # self.basic_network, self.rcnn = Network(
             # self.param.net_name, feature_layers=self.param.feature_layers, is_det=True)
         self.basic_network, self.rcnn = Network(
-            cfg.net_name, feature_layers=cfg.feature_layers, is_det=True)
+            cfg.NET_NAME, feature_layers=cfg.FEATURE_LAYERS, is_det=True, use_fpn=cfg.USE_FPN)
 
         # FPN/RPN network
         if cfg.USE_FPN:
-            self.fpn = FPN(in_channels=self.basic_network.out_dim,
+            self.fpn = FPN(num_classes=cfg.NCLASSES, in_channels=self.basic_network.out_dim,
                            feat_strides=self.basic_network.feat_strides)
         else:
-            self.rpn = RPN(
-                in_channels=self.basic_network.out_dim[0], feat_strides=self.basic_network.feat_strides[0])
+            self.rpn = RPN(num_classes=cfg.NCLASSES, in_channel=self.basic_network.out_dim[0], feat_stride=self.basic_network.feat_strides[0])
 
         # classification and bbox regression
-        self.cls_fc = nn.Linear(self.rcnn.out_dim, cfg.num_classes)
-        self.bbox_fc = nn.Linear(self.rcnn.out_dim, cfg.num_classes * 4)
+        self.cls_fc = nn.Linear(self.rcnn.out_dim, cfg.NCLASSES)
+        self.bbox_fc = nn.Linear(self.rcnn.out_dim, cfg.NCLASSES * 4)
 
         # loss
         self.wrap_smooth_l1_loss = WrapSmoothL1Loss(sigma=1.0)
@@ -109,8 +108,8 @@ class FasterRCNN(nn.Module):
     def build_loss(self, cls_score, bbox_pred, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights):
 
         if cls_score.is_cuda:
-            labels = torch.autograd.Variable(torch.LongTensor(labels)).cuda()
-            if isinstance(rpn_bbox_pred.data, torch.cuda.FloatTensor):
+            labels = torch.autograd.Variable(torch.from_numpy(labels).type(new_type=torch.LongTensor)).cuda()
+            if isinstance(bbox_pred.data, torch.cuda.FloatTensor):
                 bbox_targets = torch.autograd.Variable(
                     torch.FloatTensor(bbox_targets)).cuda()
                 bbox_inside_weights = torch.autograd.Variable(
@@ -125,7 +124,7 @@ class FasterRCNN(nn.Module):
                 bbox_outside_weights = torch.autograd.Variable(
                     torch.DoubleTensor(bbox_outside_weights)).cuda()
         else:
-            labels = torch.autograd.Variable(torch.LongTensor(labels))
+            labels = torch.autograd.Variable(torch.from_numpy(labels).type(new_type=torch.LongTensor))
             if isinstance(bbox_pred.data, torch.FloatTensor):
                 bbox_targets = torch.autograd.Variable(
                     torch.FloatTensor(bbox_targets))

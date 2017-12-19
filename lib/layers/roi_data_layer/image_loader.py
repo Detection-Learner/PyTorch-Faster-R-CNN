@@ -70,7 +70,7 @@ def detection_collate(batch):
     # normalize
     images = (images - cfg.PIXEL_MEANS)  # / 128.0
     images = images.transpose((0, 3, 1, 2))
-    images = np.ascontiguousarray(images)
+    images = np.ascontiguousarray(images).astype(np.float32)
 
     images = torch.from_numpy(images)
     img_infos = np.vstack(img_infos)
@@ -80,15 +80,17 @@ def detection_collate(batch):
 
 def transform(img, gt_box):
 
-    seed = random.uniform(0, 1)
     width, height = img.size
-    if seed < 0.5:
-        img = img.transpose(Image.FLIP_LEFT_RIGHT)
-        # flip boxes
-        oldx1 = gt_box[:, 0].copy()
-        oldx2 = gt_box[:, 2].copy()
-        gt_box[:, 0] = width - oldx2 - 1
-        gt_box[:, 2] = width - oldx1 - 1
+
+    if cfg.TRAIN.USE_FLIPPED ==True:
+        seed = random.uniform(0, 1)
+        if seed < 0.5:
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            # flip boxes
+            oldx1 = gt_box[:, 0].copy()
+            oldx2 = gt_box[:, 2].copy()
+            gt_box[:, 0] = width - oldx2 - 1
+            gt_box[:, 2] = width - oldx1 - 1
 
     img_size_min = np.min(img.size)
     img_size_max = np.max(img.size)

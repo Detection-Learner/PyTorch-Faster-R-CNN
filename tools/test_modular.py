@@ -164,7 +164,7 @@ def test_fpn():
     optimizer.step()
 
 
-def test_warp_smooth_l1_loss():
+def test_wrap_smooth_l1_loss():
     warp_smooth_l1_loss = WrapSmoothL1Loss(
         sigma=1.0, size_average=True).cuda()
     warp_smooth_l1_loss_py = WrapSmoothL1Loss_py(sigma=1.0, size_average=True)
@@ -199,4 +199,4 @@ def test_warp_smooth_l1_loss_backward():
 
 
 if __name__ == '__main__':
-    test_fpn()
+    test_wrap_smooth_l1_loss()

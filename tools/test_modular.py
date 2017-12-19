@@ -20,6 +20,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
+from lib.utils.config import cfg
+
 
 def test_image_loader():
 
@@ -42,8 +44,8 @@ def test_image_loader():
             gt_box = gt_boxes[batch_idx]
             print type(gt_boxes), gt_box.shape
             print type(img)
-            img *= 128
-            img += 128
+            # img *= 128
+            img += cfg.PIXEL_MEANS
             img /= 255
             plt.imshow(img)
             for box in gt_box:

@@ -43,7 +43,16 @@ def _load_annitation(ann_path):
 
 
 def detection_collate(batch):
+    """
+    Return:
 
+    images: batch_size * 3 * max_height * max_width, tensor
+
+    img_infos: batch_size * 3, np.ndarray
+
+    gt_boxes: batch_size * gt_i, list
+
+    """
     imgs, img_infos, gt_boxes = zip(*batch)
     batch_size = len(imgs)
 
@@ -56,12 +65,15 @@ def detection_collate(batch):
     for i in range(batch_size):
         img = imgs[i]
         images[i, 0: int(img_infos[i][0]), 0: int(img_infos[i][1]), :] = img
+    images = np.ascontiguousarray(images)
 
     # normalize
     images = (images - cfg.PIXEL_MEANS)  # / 128.0
     images = images.transpose((0, 3, 1, 2))
+    images = np.ascontiguousarray(images)
 
     images = torch.from_numpy(images)
+    img_infos = np.vstack(img_infos)
 
     return images, img_infos, gt_boxes
 
@@ -93,7 +105,7 @@ def transform(img, gt_box):
         [round(height * img_scale), round(width * img_scale), img_scale])
     gt_box[:, 0:4] *= img_scale
 
-    return np.array(img), im_info, gt_box
+    return np.array(img, dtype=np.float32), im_info, gt_box
 
 
 class ImageLoader(data.Dataset):

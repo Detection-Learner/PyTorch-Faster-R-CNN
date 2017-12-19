@@ -85,30 +85,31 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
     total_anchors = int(K * A)
 
     # only keep anchors inside the image (with a little pixels out of edges)
-    inds_inside = np.where(
+    inds_insides = [np.where(
         (all_anchors[:, 0] >= -_allowed_border) &
         (all_anchors[:, 1] >= -_allowed_border) &
-        (all_anchors[:, 2] < im_info[0, 1] + _allowed_border) &  # width
-        (all_anchors[:, 3] < im_info[0, 0] + _allowed_border)  # height
-    )[0]
+        (all_anchors[:, 2] < im_info[i, 1] + _allowed_border) &  # width
+        (all_anchors[:, 3] < im_info[i, 0] + _allowed_border)  # height
+    )[0] for i in range(B)]
 
     # keep only inside anchors
-    anchors = all_anchors[inds_inside, :]  # (A, 4)
+    anchors = [all_anchors[inds_inside, :]
+               for inds_inside in inds_insides]  # [B, (A, 4)]
 
     # NOTE: Attention the batch size follow
     # label: 1 is positive, 0 is negative, -1 is dont care
-    labels = np.empty(
-        (rpn_cls_score.shape[0], len(inds_inside)), dtype=np.float32)
-    labels.fill(-1)  # (B, A)
+    labels = [np.ones(len(inds_inside), dtype=np.float32) * (-1)
+              for inds_inside in inds_insides]  # [B, (A)]
+    # labels.fill(-1)  # (B, A)
 
     # overlaps between the anchors and the gt boxes
     # overlaps [B, (ex, gt)], shape is [B, (A, G)]
-    overlaps = [bbox_overlaps(np.ascontiguousarray(anchors, dtype=np.float),
-                              np.ascontiguousarray(gt_box, dtype=np.float)) for gt_box in gt_boxes]
+    overlaps = [bbox_overlaps(np.ascontiguousarray(anchor, dtype=np.float),
+                              np.ascontiguousarray(gt_box, dtype=np.float)) for anchor, gt_box in zip(anchors, gt_boxes)]
     argmax_overlaps = [overlap.argmax(axis=1)
                        for overlap in overlaps]  # [B, (A)]
     max_overlaps = [overlap[np.arange(len(inds_inside)), argmax_overlap]
-                    for overlap, argmax_overlap in zip(overlaps, argmax_overlaps)]
+                    for overlap, inds_inside, argmax_overlap in zip(overlaps, inds_insides, argmax_overlaps)]
     gt_argmax_overlaps = [overlap.argmax(axis=0)
                           for overlap in overlaps]  # [B, (G)]
     gt_max_overlaps = [overlap[gt_argmax_overlap, np.arange(
@@ -119,20 +120,20 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
     if not cfg.TRAIN.RPN_CLOBBER_POSITIVES:
         # assign bg labels first so that positive labels can clobber them
         for i in range(B):
-            labels[i, max_overlaps[i] < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+            labels[i][max_overlaps[i] < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
     # fg label: for each gt, anchor with highest overlap
     for i in range(B):
-        labels[i, gt_argmax_overlaps[i]] = 1
+        labels[i][gt_argmax_overlaps[i]] = 1
         # print np.unique(gt_argmax_overlaps[i]).shape
     # fg label: above threshold IOU
     for i in range(B):
-        labels[i, max_overlaps[i] >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
+        labels[i][max_overlaps[i] >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1
 
     if cfg.TRAIN.RPN_CLOBBER_POSITIVES:
         # assign bg labels last so that negative labels can clobber positives
         for i in range(B):
-            labels[i, max_overlaps[i] < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
+            labels[i][max_overlaps[i] < cfg.TRAIN.RPN_NEGATIVE_OVERLAP] = 0
 
     # preclude dontcare areas
     if dontcare_areas is not None:  # and dontcare_areas[0].shape[0] > 0:
@@ -141,14 +142,14 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
         # intersec shape is [B, (D x A)]
         intersecs = [bbox_intersections(
             np.ascontiguousarray(dontcare_area, dtype=np.float),  # D x 4
-            np.ascontiguousarray(anchors, dtype=np.float)  # A x 4
-        ) if dontcare_area.shape[0] > 0 else None for dontcare_area in dontcare_areas]
+            np.ascontiguousarray(anchor, dtype=np.float)  # A x 4
+        ) if dontcare_area.shape[0] > 0 else None for anchor, dontcare_area in zip(anchor, dontcare_areas)]
         intersecs_ = [intersec.sum(axis=0)
                       if intersec is not None else None for intersec in intersecs]  # [B, (A, 1)]
-        for i in range(B):
+        for i in range(len(intersecs_)):
             if intersecs_[i] is not None:
-                labels[i, intersecs_[i] >
-                       cfg.TRAIN.DONTCARE_AREA_INTERSECTION_HI] = -1
+                labels[i][intersecs_[i] >
+                          cfg.TRAIN.DONTCARE_AREA_INTERSECTION_HI] = -1
 
     # preclude hard samples that are highly occlusioned, truncated or difficult to see
     if cfg.TRAIN.PRECLUDE_HARD_SAMPLES and gt_ishard is not None and all([gt_ishard[i].shape[0] > 0 for i in range(len(gt_ishard))]):
@@ -163,12 +164,12 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
                 hard_overlaps = bbox_overlaps(
                     np.ascontiguousarray(
                         gt_hardboxes[i], dtype=np.float),  # H x 4
-                    np.ascontiguousarray(anchors, dtype=np.float))  # A x 4
+                    np.ascontiguousarray(anchors[i], dtype=np.float))  # A x 4
                 hard_max_overlaps = hard_overlaps.max(axis=0)  # (A)
                 labels[i, hard_max_overlaps >=
                        cfg.TRAIN.RPN_POSITIVE_OVERLAP] = -1
                 max_intersec_label_inds = hard_overlaps.argmax(axis=1)  # H x 1
-                labels[i, max_intersec_label_inds] = -1  #
+                labels[i][max_intersec_label_inds] = -1  #
 
     # subsample positive labels if we have too many
     num_fg = int(cfg.TRAIN.RPN_FG_FRACTION * cfg.TRAIN.RPN_BATCHSIZE)
@@ -177,7 +178,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
         if len(fg_inds[i]) > num_fg:
             disable_inds = npr.choice(
                 fg_inds[i], size=(len(fg_inds[i]) - num_fg), replace=False)
-            labels[i, disable_inds] = -1
+            labels[i][disable_inds] = -1
 
     # subsample negative labels if we have too many
     for i in range(B):
@@ -187,20 +188,20 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
         if len(bg_inds) > num_bg:
             disable_inds = npr.choice(
                 bg_inds, size=(len(bg_inds) - num_bg), replace=False)
-            labels[i, disable_inds] = -1
+            labels[i][disable_inds] = -1
 
     # Compute bbox_targets, which is pre rpn_bbox_targets
-    bbox_targets = [_compute_targets(anchors, gt_box[argmax_overlap, :])
-                    for gt_box, argmax_overlap in zip(gt_boxes, argmax_overlaps)]
+    bbox_targets = [_compute_targets(anchor, gt_box[argmax_overlap, :])
+                    for anchor, gt_box, argmax_overlap in zip(anchors, gt_boxes, argmax_overlaps)]
     # Compute the inside & outside weights
-    bbox_inside_weights = np.zeros(
-        (B, len(inds_inside), 4), dtype=np.float32)  # (B, A, 4)
+    bbox_inside_weights = [np.zeros(
+        (len(inds_inside), 4), dtype=np.float32) for inds_inside in inds_insides]  # (B, A, 4)
     for i in range(B):
-        bbox_inside_weights[i, labels[i] == 1, :] = np.array(
+        bbox_inside_weights[i][labels[i] == 1, :] = np.array(
             cfg.TRAIN.RPN_BBOX_INSIDE_WEIGHTS)
 
-    bbox_outside_weights = np.zeros(
-        (B, len(inds_inside), 4), dtype=np.float32)
+    bbox_outside_weights = [np.zeros(
+        (len(inds_inside), 4), dtype=np.float32) for inds_inside in inds_insides]
     if cfg.TRAIN.RPN_POSITIVE_WEIGHT < 0:
         # uniform weighting of examples (given non-uniform sampling)
         num_examples = [np.sum(label >= 0) + 1 for label in labels]
@@ -216,20 +217,20 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
         negative_weights = [((1.0 - cfg.TRAIN.RPN_POSITIVE_WEIGHT) /
                              (np.sum(label == 0)) + 1) for label in labels]
     for i in range(B):
-        bbox_outside_weights[i, labels[i] == 1, :] = positive_weights[i]
-        bbox_outside_weights[i, labels[i] == 0, :] = negative_weights[i]
+        bbox_outside_weights[i][labels[i] == 1, :] = positive_weights[i]
+        bbox_outside_weights[i][labels[i] == 0, :] = negative_weights[i]
 
     # map up to original set of anchors
     # NOTE: there labels has been transformed to a list whose length is batch size.
     #      So as bbox_inside_weights & bbox_outside_weights
-    labels = [_unmap(labels[i], total_anchors, inds_inside, fill=-1)
+    labels = [_unmap(labels[i], total_anchors, inds_insides[i], fill=-1)
               for i in range(B)]
     bbox_targets = [_unmap(bbox_target, total_anchors, inds_inside, fill=0)
-                    for bbox_target in bbox_targets]
+                    for inds_inside, bbox_target in zip(inds_insides, bbox_targets)]
     bbox_inside_weights = [_unmap(bbox_inside_weight, total_anchors, inds_inside, fill=0)
-                           for bbox_inside_weight in bbox_inside_weights]
+                           for inds_inside, bbox_inside_weight in zip(inds_insides, bbox_inside_weights)]
     bbox_outside_weights = [_unmap(bbox_outside_weight, total_anchors, inds_inside, fill=0)
-                            for bbox_outside_weight in bbox_outside_weights]
+                            for inds_inside, bbox_outside_weight in zip(inds_insides, bbox_outside_weights)]
 
     # Processing labels
     labels = np.array(labels).reshape((-1, height, width, A))  # (B, H, W, A)

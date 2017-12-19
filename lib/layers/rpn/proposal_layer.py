@@ -31,7 +31,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, feat_stride=16
     rpn_cls_prob:  (B, Ax2, H, W) outputs of RPN, prob of bg or fg
                          NOTICE: the old version is ordered by (1, H, W, 2, A) !!!!
     rpn_bbox_pred: (B, Ax4, H, W), rgs boxes output of RPN
-    im_info: a list of [image_height, image_width, scale_ratios]
+    im_info: [B, image_height, image_width, scale_ratios]
     cfg_key: 'TRAIN' or 'TEST'
     feat_stride: the downsampling ratio of feature map to the original input image
     anchor_scales: the scales to the basic_anchor (basic anchor is [16, 16])
@@ -92,6 +92,7 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, feat_stride=16
     # shift anchors (K, A, 4)
     # reshape to (K*A, 4) shifted anchors
     # K = heights * widths
+    B = len(im_info)
     A = _num_anchors
     K = shifts.shape[0]
     anchors = _anchors.reshape((1, A, 4)) + \
@@ -109,18 +110,18 @@ def proposal_layer(rpn_cls_prob, rpn_bbox_pred, im_info, cfg_key, feat_stride=16
         (0, 2, 3, 1)).reshape((-1, heights * widths * A, 4))
 
     # Convert anchors into proposals via bbox transformations
-    # NOTICE: Attention the batch size B
+    # NOTICE: Attention the batch size B.
     proposals = bbox_transform_inv(anchors, bbox_deltas)
 
-    # Clip predicted boxes to image
-    proposals = clip_boxes(proposals, im_info[0, :2])
+    # Clip predicted boxes to image.
+    proposals = [clip_boxes(proposals[i], im_info[i, :2]) for i in range(B)]
 
     # remove predicted boxes with either height or width < threshold
     # (NOTE: convert min_size to input image scale stored in im_info[2])
-    keeps = [_filter_boxes(proposals[i, :, :], min_size * im_info[i, 2])
-             for i in range(len(im_info))]
-    proposals_list = [proposals[i, keeps[i], :] for i in range(len(keeps))]
-    scores_list = [scores[i, keeps[i], :] for i in range(len(keeps))]
+    keeps = [_filter_boxes(proposals[i][:, :], min_size * im_info[i, 2])
+             for i in range(B)]
+    proposals_list = [proposals[i][keeps[i], :] for i in range(B)]
+    scores_list = [scores[i, keeps[i], :] for i in range(B)]
 
     # # remove irregular boxes, too fat too tall
     # keeps = [_filter_irregular_boxes(proposals[i, :, :], min_size * im_info[i, 2])

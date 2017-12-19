@@ -9,7 +9,7 @@ __C = edict()
 cfg = __C
 
 # region feature pyramid network (FPN) or not
-__C.USE_FPN = True
+__C.USE_FPN = False
 # anchor base size, usually needn't to change it
 # used in proposal_layer and anchor_target_layer
 __C.ANCHOR_BASE_SIZE = 16
@@ -27,7 +27,7 @@ __C.NCLASSES = 21
 # network name
 __C.NET_NAME = 'vgg16'
 # feature layer
-__C.FEATURE_LAYERS = ['conv5_3', 'conv4_3']
+__C.FEATURE_LAYERS = ['conv5_3',]
 # Pixel mean values (RGB order) as a (1, 1, 3) array
 # We use the same pixel mean for all networks even though it's not exactly what
 # they were trained with

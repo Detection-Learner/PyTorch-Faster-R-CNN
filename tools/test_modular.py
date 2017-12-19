@@ -16,20 +16,41 @@ from torch.autograd import gradcheck
 import torch.nn.functional as F
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def test_image_loader():
 
-    loader = ImageLoader('img_list.txt', 'ann_list.txt')
-    
+    loader = ImageLoader('/home/stick/Dataset/Detection_demo/img_list.txt',
+                         '/home/stick/Dataset/Detection_demo/ann_list.txt')
+
     train_loader = torch.utils.data.DataLoader(
-            loader,
-            batch_size=10, shuffle=True,
-            num_workers=3, collate_fn=detection_collate, pin_memory=True)
-    
+        loader,
+        batch_size=10, shuffle=True,
+        num_workers=3, collate_fn=detection_collate, pin_memory=True)
+
     for i, (imgs, im_infos, gt_boxes) in enumerate(train_loader):
-        print imgs.shape
-        print len(im_infos), [len(im_info) for im_info in im_infos]
-        print len(gt_boxes), [len(gt_box) for gt_box in gt_boxes]
+        print imgs.size()
+        # print len(im_infos), [len(im_info) for im_info in im_infos]
+        # print len(gt_boxes), [len(gt_box) for gt_box in gt_boxes]
+        # add
+        len_batch = len(gt_boxes)
+        for i in range(len_batch):
+            img = imgs.numpy()[i].transpose(1, 2, 0)
+            gt_box = gt_boxes[i]
+            print type(gt_boxes), gt_box.shape
+            print type(img)
+            img *= 128
+            img += 128
+            img /= 255
+            plt.imshow(img)
+            for box in gt_box:
+                plt.plot([box[0], box[2], box[2], box[0], box[0]], [
+                         box[1], box[1], box[3], box[3], box[1]], 'r-')
+            plt.show()
+            a = raw_input('Continue? ')
+            if a == 'Q' or a == 'q':
+                sys.exit(1)
 
 
 def test_proposal_layer():
@@ -143,4 +164,4 @@ def test_warp_smooth_l1_loss_backward():
 
 
 if __name__ == '__main__':
-    test_warp_smooth_l1_loss()
+    test_image_loader()

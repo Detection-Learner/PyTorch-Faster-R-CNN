@@ -199,4 +199,4 @@ def test_warp_smooth_l1_loss_backward():
 
 
 if __name__ == '__main__':
-    test_image_loader()
+    test_fpn()

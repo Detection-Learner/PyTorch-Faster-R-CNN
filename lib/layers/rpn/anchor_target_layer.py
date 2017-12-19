@@ -145,7 +145,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
         ) if dontcare_area.shape[0] > 0 else None for dontcare_area in dontcare_areas]
         intersecs_ = [intersec.sum(axis=0)
                       if intersec is not None else None for intersec in intersecs]  # [B, (A, 1)]
-        for i in range(len(intersecs_)):
+        for i in range(B):
             if intersecs_[i] is not None:
                 labels[i, intersecs_[i] >
                        cfg.TRAIN.DONTCARE_AREA_INTERSECTION_HI] = -1
@@ -176,7 +176,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
     for i in range(B):
         if len(fg_inds[i]) > num_fg:
             disable_inds = npr.choice(
-                fg_inds[i], size=(len(fg_inds) - num_fg), replace=False)
+                fg_inds[i], size=(len(fg_inds[i]) - num_fg), replace=False)
             labels[i, disable_inds] = -1
 
     # subsample negative labels if we have too many

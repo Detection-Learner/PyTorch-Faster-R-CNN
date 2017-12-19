@@ -16,13 +16,13 @@ class VGGBasicNetwork(nn.Module):
     # the convolutions of VGG network
     def __init__(self, feature_modules):
         super(VGGBasicNetwork, self).__init__()
-        [self.feat_modules, self.feat_stride, self.out_dim] = feature_modules
+        [self.feat_modules, self.feat_strides, self.out_dim] = feature_modules
         self.feat_modules = nn.ModuleList(self.feat_modules)
         self._initialize_weights()
 
     def forward(self, x):
         features = []
-        for ele_module in self.feat_modules:
+        for i, ele_module in enumerate(self.feat_modules):
             x = ele_module(x)
             features.append(x)
         return features
@@ -53,6 +53,7 @@ class VGGClassifier(nn.Module):
         self.relu2 = nn.ReLU(inplace=True)
         self.dropout2 = nn.Dropout()
         self._initialize_weights()
+        self.out_dim = 4096
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
@@ -82,7 +83,7 @@ def make_feat_modules(cfg, feature_layers, batch_norm=False):
     # sequential layers
     feature_modules = []
     # downsample multipler
-    feat_stride = []
+    feat_strides = []
     # corresponding channels
     out_dim = []
     stride = 1
@@ -104,10 +105,10 @@ def make_feat_modules(cfg, feature_layers, batch_norm=False):
             in_channels = v
         if layer_name in feature_layers:
             feature_modules.append(nn.Sequential(*layers))
-            feat_stride.append(stride)
+            feat_strides.append(stride)
             out_dim.append(in_channels)
             layers = []
-    return feature_modules, feat_stride, out_dim
+    return feature_modules, feat_strides, out_dim
 
 cfg = {
     'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512],

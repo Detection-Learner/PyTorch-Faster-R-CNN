@@ -121,10 +121,10 @@ class RPN(nn.Module):
         #  rpn_label process
         if rpn_cls_score.is_cuda:
             rpn_label = torch.autograd.Variable(
-                torch.LongTensor(rpn_label.reshape(-1))).cuda()
+                torch.from_numpy(rpn_label.reshape(-1)).type(new_type=torch.LongTensor)).cuda()
         else:
             rpn_label = torch.autograd.Variable(
-                torch.LongTensor(rpn_label.reshape(-1)))
+                torch.from_numpy(rpn_label.reshape(-1)).type(new_type=torch.LongTensor))
         # build loss
         rpn_cross_entropy = F.cross_entropy(
             rpn_cls_score, rpn_label, ignore_index=-1)

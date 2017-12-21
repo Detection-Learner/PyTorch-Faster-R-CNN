@@ -89,9 +89,9 @@ def bbox_transform_inv(boxes, deltas):
 def clip_boxes(boxes, im_shape):
     """
     Clip boxes to image boundaries.
-    :param boxes: B * n * 4 numpy array, given boxes
+    :param boxes: n * 4 numpy array, given boxes
     :param im_shape: 2 numpy array, [height, width]
-    :return: boxes: B * n * 4 numpy array, cliped boxes
+    :return: boxes: n * 4 numpy array, cliped boxes
     """
     if boxes.shape[1] == 0:
         return boxes

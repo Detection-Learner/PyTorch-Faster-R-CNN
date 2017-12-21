@@ -155,10 +155,10 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     # foreground ROIs
     fg_rois_per_image = min(
         fg_rois_per_image, fg_inds.size)  # .astype(np.int32)
+
     if fg_inds.size > 0:
         # randomly select fg_rois_per_image rois.
         # np.random.choice(), replace = False means there is no repeat objects in choiced.
-        # print type(fg_inds[0]), type(fg_rois_per_image)
         fg_inds = np.random.choice(
             fg_inds, size=fg_rois_per_image, replace=False)
     # Select background ROIs as those within [BG_THRESH_LO, BG_THRESH_HI]

@@ -23,7 +23,7 @@ __C.ANCHOR_RATIOS = [0.5, 1, 2]
 # used in anchor_target_layer
 __C.ALLOWED_BORDER = 0
 # numbers of class
-__C.NCLASSES = 21
+__C.NCLASSES = 2
 # network name
 __C.NET_NAME = 'vgg16'
 # feature layer

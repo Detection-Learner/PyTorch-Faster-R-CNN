@@ -48,7 +48,6 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
     rpn_bbox_outside_weights: (HxWxA, 4) used to balance the fg/bg,
                             beacuse the numbers of bgs and fgs mays significiantly different
     """
-
     # Generate anchors
     _anchors = generate_anchors(
         base_size=cfg.ANCHOR_BASE_SIZE, ratios=anchor_ratios, scales=np.array(anchor_scales))
@@ -125,7 +124,6 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
     # fg label: for each gt, anchor with highest overlap
     for i in range(B):
         labels[i][gt_argmax_overlaps[i]] = 1
-        # print np.unique(gt_argmax_overlaps[i]).shape
     # fg label: above threshold IOU
     for i in range(B):
         labels[i][max_overlaps[i] >= cfg.TRAIN.RPN_POSITIVE_OVERLAP] = 1

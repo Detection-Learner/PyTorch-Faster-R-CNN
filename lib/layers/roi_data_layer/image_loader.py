@@ -68,7 +68,8 @@ def detection_collate(batch):
     images = np.ascontiguousarray(images)
 
     # normalize
-    images = (images - cfg.PIXEL_MEANS)  # / 128.0
+    #images = (images - cfg.PIXEL_MEANS)  # / 128.0
+    images = (images - 128.) / 128.
     images = images.transpose((0, 3, 1, 2))
     images = np.ascontiguousarray(images).astype(np.float32)
 

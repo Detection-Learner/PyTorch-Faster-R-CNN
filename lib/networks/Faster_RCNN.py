@@ -20,7 +20,7 @@ from network import Network
 class FasterRCNN(nn.Module):
 
     #def __init__(self, param_file_path):
-    def __init__(self):
+    def __init__(self, pretrained=False):
         super(FasterRCNN, self).__init__()
 
         # parameters
@@ -42,7 +42,7 @@ class FasterRCNN(nn.Module):
         # self.basic_network, self.rcnn = Network(
             # self.param.net_name, feature_layers=self.param.feature_layers, is_det=True)
         self.basic_network, self.rcnn = Network(
-            cfg.NET_NAME, feature_layers=cfg.FEATURE_LAYERS, is_det=True, use_fpn=cfg.USE_FPN)
+            cfg.NET_NAME, feature_layers=cfg.FEATURE_LAYERS, pretrained=pretrained, is_det=True, use_fpn=cfg.USE_FPN)
 
         # FPN/RPN network
         if cfg.USE_FPN:
@@ -55,23 +55,29 @@ class FasterRCNN(nn.Module):
         self.cls_fc = nn.Linear(self.rcnn.out_dim, cfg.NCLASSES)
         self.bbox_fc = nn.Linear(self.rcnn.out_dim, cfg.NCLASSES * 4)
 
+        self.cls_fc.weight.data.normal_(0, 0.0001)
+        self.cls_fc.bias.data.zero_()
+        self.bbox_fc.weight.data.normal_(0, 0.0001)
+        self.bbox_fc.bias.data.zero_()
+
         # loss
-        self.wrap_smooth_l1_loss = WrapSmoothL1Loss(sigma=1.0)
+        self.wrap_smooth_l1_loss = WrapSmoothL1Loss(sigma=1.0, size_average=False)
         self.cross_entropy = None
         self.bbox_loss = None
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                m.weight.data.normal_(0, 0.01)
-                if m.bias is not None:
-                    m.bias.data.zero_()
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
-                if m.bias is not None:
-                    m.bias.data.zero_()
+        # for m in self.modules():
+            # #print m
+            # if isinstance(m, nn.Conv2d):
+                # m.weight.data.normal_(0, 0.01)
+                # if m.bias is not None:
+                    # m.bias.data.zero_()
+            # elif isinstance(m, nn.BatchNorm2d):
+                # m.weight.data.fill_(1)
+                # m.bias.data.zero_()
+            # elif isinstance(m, nn.Linear):
+                # m.weight.data.normal_(0, 0.001)
+                # if m.bias is not None:
+                    # m.bias.data.zero_()
 
     @property
     def loss(self):
@@ -95,14 +101,13 @@ class FasterRCNN(nn.Module):
         output = self.rcnn(roi_pooling_data)
 
         cls_pred = self.cls_fc(output)
-        cls_score = F.softmax(cls_pred)
         bbox_pred = self.bbox_fc(output)
 
         if self.training:
             self.cross_entropy, self.bbox_loss = self.build_loss(
-                cls_score, bbox_pred, rpn_data[1], rpn_data[2], rpn_data[3], rpn_data[4])
+                cls_pred, bbox_pred, rpn_data[1], rpn_data[2], rpn_data[3], rpn_data[4])
 
-        return cls_score, bbox_pred, rpn_data[0]
+        return cls_pred, bbox_pred, rpn_data[0]
 
     # calculate the classification loss and bounding-box delta regression loss
     def build_loss(self, cls_score, bbox_pred, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights):
@@ -140,6 +145,10 @@ class FasterRCNN(nn.Module):
                 bbox_outside_weights = torch.autograd.Variable(
                     torch.DoubleTensor(bbox_outside_weights))
 
+        #print 'cls_score', cls_score
+        #print 'labels', labels
+        #print 'bbox_pred', bbox_pred
+        #print 'bbox_targets', bbox_targets
         cross_entropy = F.cross_entropy(cls_score, labels, ignore_index=-1)
 
         bbox_loss = self.wrap_smooth_l1_loss(

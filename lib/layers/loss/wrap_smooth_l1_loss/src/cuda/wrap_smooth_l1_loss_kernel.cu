@@ -77,8 +77,8 @@ __global__ void WrapSmoothL1LossBackward(const int nthreads, const float sigma2,
         {
             input_flat1[index] = data_outside_weights[index] * data_inside_weights[index] * ((0<val) - (val<0));
         }
-        input_flat2[index] = -input_flat1[index] * output_flat[0] / (size_average ? nthreads : 1);
-        input_flat1[index] = input_flat1[index] * output_flat[0] / (size_average ? nthreads : 1);
+        input_flat2[index] = -input_flat1[index] * output_flat[0] / (float)size_average;
+        input_flat1[index] = input_flat1[index] * output_flat[0] / (float)size_average;
     }
 }
 

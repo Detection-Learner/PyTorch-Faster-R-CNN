@@ -5,12 +5,23 @@
 
 import torch.nn as nn
 import math
+import torch.utils.model_zoo as model_zoo
 
 __all__ = [
     'vgg11', 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn',
     'vgg19_bn', 'vgg19',
 ]
 
+model_urls = {
+    'vgg11': 'https://download.pytorch.org/models/vgg11-bbd30ac9.pth',
+    'vgg13': 'https://download.pytorch.org/models/vgg13-c768596a.pth',
+    'vgg16': 'https://download.pytorch.org/models/vgg16-397923af.pth',
+    'vgg19': 'https://download.pytorch.org/models/vgg19-dcbb9e9d.pth',
+    'vgg11_bn': 'https://download.pytorch.org/models/vgg11_bn-6002323d.pth',
+    'vgg13_bn': 'https://download.pytorch.org/models/vgg13_bn-abd245e5.pth',
+    'vgg16_bn': 'https://download.pytorch.org/models/vgg16_bn-6c64b313.pth',
+    'vgg19_bn': 'https://download.pytorch.org/models/vgg19_bn-c79401a0.pth',
+}
 
 class VGGBasicNetwork(nn.Module):
     # the convolutions of VGG network
@@ -46,19 +57,20 @@ class VGGClassifier(nn.Module):
     # the fully connection network
     def __init__(self, in_channel=512):
         super(VGGClassifier, self).__init__()
-        self.fc1 = nn.Linear(in_channel * 7 * 7, 4096)
-        self.relu1 = nn.ReLU(inplace=True)
-        self.dropout1 = nn.Dropout()
-        self.fc2 = nn.Linear(4096, 4096)
-        self.relu2 = nn.ReLU(inplace=True)
-        self.dropout2 = nn.Dropout()
+        self.classifier = nn.Sequential(
+            nn.Linear(in_channel * 7 * 7, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+        )
         self._initialize_weights()
         self.out_dim = 4096
 
     def forward(self, x):
         x = x.view(x.size(0), -1)
-        x = self.dropout1(self.relu1(self.fc1(x)))
-        x = self.dropout2(self.relu2(self.fc2(x)))
+        x = self.classifier(x)
         return x
 
     def _initialize_weights(self):
@@ -139,6 +151,24 @@ def vgg11(pretrained=False, feature_layers=None, **kwargs):
     features = VGGBasicNetwork(make_feat_modules(zip(cfg['A'], cfg['A_name']), feature_layers))
     # the model of fully convolutional layers for classification
     classifier = VGGClassifier(**kwargs)
+
+    if pretrained:
+        models = model_zoo.load_url(model_urls['vgg11'])
+        from collections import OrderedDict
+        features_dict = OrderedDict()
+        classifier_dict = OrderedDict()
+        for k, v in models.items():
+            if 'features' in k:
+                name = 'feat_modules.0' + k[8:]
+                features_dict[name] = v
+            elif '6' not in k:
+                name = k
+                classifier_dict[name] = v
+        features.load_state_dict(features_dict)
+        state_dict = classifier.state_dict()
+        state_dict.update(classifier_dict)
+        classifier.load_state_dict(state_dict)
+
     return features, classifier
 
 
@@ -154,6 +184,24 @@ def vgg11_bn(pretrained=False, feature_layers=None, **kwargs):
     features = VGGBasicNetwork(make_feat_modules(zip(cfg['A'], cfg['A_name']), feature_layers, batch_norm=True))
     # the model of fully convolutional layers for classification
     classifier = VGGClassifier(**kwargs)
+
+    if pretrained:
+        models = model_zoo.load_url(model_urls['vgg11_bn'])
+        from collections import OrderedDict
+        features_dict = OrderedDict()
+        classifier_dict = OrderedDict()
+        for k, v in models.items():
+            if 'features' in k:
+                name = 'feat_modules.0' + k[8:]
+                features_dict[name] = v
+            elif '6' not in k:
+                name = k
+                classifier_dict[name] = v
+        features.load_state_dict(features_dict)
+        state_dict = classifier.state_dict()
+        state_dict.update(classifier_dict)
+        classifier.load_state_dict(state_dict)
+
     return features, classifier
 
 
@@ -169,6 +217,24 @@ def vgg13(pretrained=False, feature_layers=None, **kwargs):
     features = VGGBasicNetwork(make_feat_modules(zip(cfg['B'], cfg['B_name']), feature_layers))
     # the model of fully convolutional layers for classification
     classifier = VGGClassifier(**kwargs)
+
+    if pretrained:
+        models = model_zoo.load_url(model_urls['vgg13'])
+        from collections import OrderedDict
+        features_dict = OrderedDict()
+        classifier_dict = OrderedDict()
+        for k, v in models.items():
+            if 'features' in k:
+                name = 'feat_modules.0' + k[8:]
+                features_dict[name] = v
+            elif '6' not in k:
+                name = k
+                classifier_dict[name] = v
+        features.load_state_dict(features_dict)
+        state_dict = classifier.state_dict()
+        state_dict.update(classifier_dict)
+        classifier.load_state_dict(state_dict)
+
     return features, classifier
 
 
@@ -184,6 +250,24 @@ def vgg13_bn(pretrained=False, feature_layers=None, **kwargs):
     features = VGGBasicNetwork(make_feat_modules(zip(cfg['B'], cfg['B_name']), feature_layers, batch_norm=True))
     # the model of fully convolutional layers for classification
     classifier = VGGClassifier(**kwargs)
+
+    if pretrained:
+        models = model_zoo.load_url(model_urls['vgg13_bn'])
+        from collections import OrderedDict
+        features_dict = OrderedDict()
+        classifier_dict = OrderedDict()
+        for k, v in models.items():
+            if 'features' in k:
+                name = 'feat_modules.0' + k[8:]
+                features_dict[name] = v
+            elif '6' not in k:
+                name = k
+                classifier_dict[name] = v
+        features.load_state_dict(features_dict)
+        state_dict = classifier.state_dict()
+        state_dict.update(classifier_dict)
+        classifier.load_state_dict(state_dict)
+
     return features, classifier
 
 
@@ -199,6 +283,24 @@ def vgg16(pretrained=False, feature_layers=None, **kwargs):
     features = VGGBasicNetwork(make_feat_modules(zip(cfg['D'], cfg['D_name']), feature_layers))
     # the model of fully convolutional layers for classification
     classifier = VGGClassifier(**kwargs)
+
+    if pretrained:
+        models = model_zoo.load_url(model_urls['vgg16'])
+        from collections import OrderedDict
+        features_dict = OrderedDict()
+        classifier_dict = OrderedDict()
+        for k, v in models.items():
+            if 'features' in k:
+                name = 'feat_modules.0' + k[8:]
+                features_dict[name] = v
+            elif '6' not in k:
+                name = k
+                classifier_dict[name] = v
+        features.load_state_dict(features_dict)
+        state_dict = classifier.state_dict()
+        state_dict.update(classifier_dict)
+        classifier.load_state_dict(state_dict)
+            
     return features, classifier
 
 
@@ -214,6 +316,24 @@ def vgg16_bn(pretrained=False, feature_layers=None, **kwargs):
     features = VGGBasicNetwork(make_feat_modules(zip(cfg['D'], cfg['D_name']), feature_layers, batch_norm=True))
     # the model of fully convolutional layers for classification
     classifier = VGGClassifier(**kwargs)
+
+    if pretrained:
+        models = model_zoo.load_url(model_urls['vgg16_bn'])
+        from collections import OrderedDict
+        features_dict = OrderedDict()
+        classifier_dict = OrderedDict()
+        for k, v in models.items():
+            if 'features' in k:
+                name = 'feat_modules.0' + k[8:]
+                features_dict[name] = v
+            elif '6' not in k:
+                name = k
+                classifier_dict[name] = v
+        features.load_state_dict(features_dict)
+        state_dict = classifier.state_dict()
+        state_dict.update(classifier_dict)
+        classifier.load_state_dict(state_dict)
+
     return features, classifier
 
 
@@ -229,6 +349,24 @@ def vgg19(pretrained=False, feature_layers=None, **kwargs):
     features = VGGBasicNetwork(make_feat_modules(zip(cfg['E'], cfg['E_name']), feature_layers))
     # the model of fully convolutional layers for classification
     classifier = VGGClassifier(**kwargs)
+
+    if pretrained:
+        models = model_zoo.load_url(model_urls['vgg19'])
+        from collections import OrderedDict
+        features_dict = OrderedDict()
+        classifier_dict = OrderedDict()
+        for k, v in models.items():
+            if 'features' in k:
+                name = 'feat_modules.0' + k[8:]
+                features_dict[name] = v
+            elif '6' not in k:
+                name = k
+                classifier_dict[name] = v
+        features.load_state_dict(features_dict)
+        state_dict = classifier.state_dict()
+        state_dict.update(classifier_dict)
+        classifier.load_state_dict(state_dict)
+
     return features, classifier
 
 
@@ -244,6 +382,24 @@ def vgg19_bn(pretrained=False, feature_layers=None, **kwargs):
     features = VGGBasicNetwork(make_feat_modules(zip(cfg['E'], cfg['E_name']), feature_layers, batch_norm=True))
     # the model of fully convolutional layers for classification
     classifier = VGGClassifier(**kwargs)
+
+    if pretrained:
+        models = model_zoo.load_url(model_urls['vgg19_bn'])
+        from collections import OrderedDict
+        features_dict = OrderedDict()
+        classifier_dict = OrderedDict()
+        for k, v in models.items():
+            if 'features' in k:
+                name = 'feat_modules.0' + k[8:]
+                features_dict[name] = v
+            elif '6' not in k:
+                name = k
+                classifier_dict[name] = v
+        features.load_state_dict(features_dict)
+        state_dict = classifier.state_dict()
+        state_dict.update(classifier_dict)
+        classifier.load_state_dict(state_dict)
+
     return features, classifier
 
 

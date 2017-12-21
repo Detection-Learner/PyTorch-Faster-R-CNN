@@ -18,8 +18,12 @@ class WrapSmoothL1LossFunction(Function):
 
         if input.is_cuda:
             loss = torch.zeros(1).cuda()
+            if self.size_average:
+                size_avg = input.numel()
+            else:
+                size_avg = input.size(0)
             wrap_smooth_l1_loss.wrap_smooth_l1_loss_forward_cuda(
-                self.sigma, self.size_average, input, target, inside_weights, outside_weights, loss)
+                self.sigma, size_avg, input, target, inside_weights, outside_weights, loss)
         else:
             loss = torch.zeros(1)
             wrap_smooth_l1_loss.wrap_smooth_l1_loss_forward(
@@ -38,8 +42,12 @@ class WrapSmoothL1LossFunction(Function):
         if v1.is_cuda:
             grad_input1 = grad_input1.cuda()
             grad_input2 = grad_input2.cuda()
+            if self.size_average:
+                size_avg = v1.numel()
+            else:
+                size_avg = v1.size(0)
             wrap_smooth_l1_loss.wrap_smooth_l1_loss_backward_cuda(
-                self.sigma, self.size_average, v1, v2, w1, w2, grad_input1, grad_input2, grad_output)
+                self.sigma, size_avg, v1, v2, w1, w2, grad_input1, grad_input2, grad_output)
         else:
             wrap_smooth_l1_loss.wrap_smooth_l1_loss_backward(
                 self.sigma, self.size_average, v1, v2, w1, w2, grad_input1, grad_input2, grad_output)

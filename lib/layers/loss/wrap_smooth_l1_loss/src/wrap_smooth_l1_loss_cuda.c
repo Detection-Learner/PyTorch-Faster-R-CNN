@@ -51,8 +51,8 @@ int wrap_smooth_l1_loss_forward_cuda(float sigma, int size_average,
         data_inside_weights, data_outside_weights,
         data_unsum_loss, stream);
     THCudaTensor_fill(state, output, THCudaTensor_sumall(state, unsumLoss));
-    if (size_average)
-        THCudaTensor_div(state, output, output, (float)data_num);
+
+    THCudaTensor_div(state, output, output, (float)size_average);
     THCudaTensor_free(state, unsumLoss);
     return 1;
 }

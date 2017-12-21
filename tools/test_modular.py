@@ -166,9 +166,9 @@ def test_fpn():
 
 def test_wrap_smooth_l1_loss():
     warp_smooth_l1_loss = WrapSmoothL1Loss(
-        sigma=1.0, size_average=True).cuda()
-    warp_smooth_l1_loss_py = WrapSmoothL1Loss_py(sigma=1.0, size_average=True)
-    smooth_l1_loss = torch.nn.SmoothL1Loss(size_average=True).cuda()
+        sigma=1.0, size_average=False).cuda()
+    warp_smooth_l1_loss_py = WrapSmoothL1Loss_py(sigma=1.0, size_average=False)
+    smooth_l1_loss = torch.nn.SmoothL1Loss(size_average=False).cuda()
     feature1 = torch.autograd.Variable(
         torch.ones(10, 2)).cuda()  # torch.Tensor(15, 10)
     feature2 = torch.autograd.Variable(torch.ones(10, 2) * 2).cuda()
@@ -179,11 +179,11 @@ def test_wrap_smooth_l1_loss():
     print l1, l1_py, l2
 
 
-def test_warp_smooth_l1_loss_backward():
+def test_wrap_smooth_l1_loss_backward():
     warp_smooth_l1_loss = WrapSmoothL1Loss(
-        sigma=1.0, size_average=True).cuda()
+        sigma=1.0, size_average=True)  # .cuda()
     warp_smooth_l1_loss_py = WrapSmoothL1Loss_py(sigma=1.0, size_average=True)
-    smooth_l1_loss = torch.nn.SmoothL1Loss(size_average=True).cuda()
+    smooth_l1_loss = torch.nn.SmoothL1Loss(size_average=True)  # .cuda()
     feature1 = torch.autograd.Variable(
         torch.ones(10, 2))  # .cuda()  # torch.Tensor(15, 10)
     feature2 = torch.autograd.Variable(torch.ones(10, 2) * 2)  # .cuda()
@@ -199,4 +199,4 @@ def test_warp_smooth_l1_loss_backward():
 
 
 if __name__ == '__main__':
-    test_wrap_smooth_l1_loss()
+    test_wrap_smooth_l1_loss_backward()

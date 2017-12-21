@@ -7,7 +7,7 @@
 #include <TH/TH.h>
 #include <math.h>
 
-int wrap_smooth_l1_loss_forward(float sigma, int size_average,
+int wrap_smooth_l1_loss_forward(float sigma, int number,
                       THFloatTensor * inputs, THFloatTensor * targets,
                       THFloatTensor * inside_weights, THFloatTensor * outside_weights, THFloatTensor * output)
 {
@@ -51,14 +51,11 @@ int wrap_smooth_l1_loss_forward(float sigma, int size_average,
             }
         }
     }
-    if (size_average)
-    {
-        *output_flat /= (float)(batch_size * data_left_num);
-    }
+    *output_flat /= (float)(number);
     return 1;
 }
 
-int wrap_smooth_l1_loss_backward(float sigma, int size_average,
+int wrap_smooth_l1_loss_backward(float sigma, int number,
                       THFloatTensor * inputs, THFloatTensor * targets,
                       THFloatTensor * inside_weights, THFloatTensor * outside_weights,
                       THFloatTensor * grad_input1, THFloatTensor * grad_input2, THFloatTensor * grad_output)
@@ -101,8 +98,8 @@ int wrap_smooth_l1_loss_backward(float sigma, int size_average,
             {
                 input_flat1[i*data_left_num + j] = data_outside_weights[i*data_left_num + j] * data_inside_weights[i*data_left_num + j] * ((0<val) - (val<0));
             }
-            input_flat2[i*data_left_num + j] = -input_flat1[i*data_left_num + j] * output_flat[0] / (size_average ? batch_size*data_left_num : 1);
-            input_flat1[i*data_left_num + j] = input_flat1[i*data_left_num + j] * output_flat[0] / (size_average ? batch_size*data_left_num : 1);
+            input_flat1[i*data_left_num + j] = input_flat1[i*data_left_num + j] * output_flat[0] / (float)number;
+            input_flat2[i*data_left_num + j] = -input_flat1[i*data_left_num + j];
         }
     }
     return 1;

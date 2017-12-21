@@ -26,5 +26,5 @@ class WrapSmoothL1Loss(nn.Module):
         if self.size_average:
             loss = torch.mean(loss)
         else:
-            loss = torch.sum(loss)
+            loss = torch.sum(loss).div_(inputs.size(0))
         return loss

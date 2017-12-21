@@ -11,7 +11,7 @@
 
 extern THCState *state;
 
-int wrap_smooth_l1_loss_forward_cuda(float sigma, int size_average,
+int wrap_smooth_l1_loss_forward_cuda(float sigma, int number,
                     THCudaTensor * inputs, THCudaTensor * targets,
                     THCudaTensor * inside_weights, THCudaTensor * outside_weights, THCudaTensor * output)
 {
@@ -46,18 +46,18 @@ int wrap_smooth_l1_loss_forward_cuda(float sigma, int size_average,
     // compute sigma^2
     float sigma2 = sigma * sigma;
     cudaStream_t stream = THCState_getCurrentStream(state);
-    WrapSmoothL1LossForwardLaucher(data_num, sigma2, size_average,
+    WrapSmoothL1LossForwardLaucher(data_num, sigma2,
         data_inputs, data_targets,
         data_inside_weights, data_outside_weights,
         data_unsum_loss, stream);
     THCudaTensor_fill(state, output, THCudaTensor_sumall(state, unsumLoss));
 
-    THCudaTensor_div(state, output, output, (float)size_average);
+    THCudaTensor_div(state, output, output, (float)number);
     THCudaTensor_free(state, unsumLoss);
     return 1;
 }
 
-int wrap_smooth_l1_loss_backward_cuda(float sigma, int size_average,
+int wrap_smooth_l1_loss_backward_cuda(float sigma, int number,
                    THCudaTensor * inputs, THCudaTensor * targets,
                    THCudaTensor * inside_weights, THCudaTensor * outside_weights,
                    THCudaTensor * grad_input1, THCudaTensor * grad_input2, THCudaTensor * grad_output)
@@ -84,7 +84,7 @@ int wrap_smooth_l1_loss_backward_cuda(float sigma, int size_average,
     float sigma2 = sigma * sigma;
     cudaStream_t stream = THCState_getCurrentStream(state);
 
-    WrapSmoothL1LossBackwardLaucher(data_num, sigma2, size_average,
+    WrapSmoothL1LossBackwardLaucher(data_num, sigma2, number,
         data_inputs, data_targets,
         data_inside_weights, data_outside_weights,
         input_flat1, input_flat2,

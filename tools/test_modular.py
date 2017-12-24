@@ -8,10 +8,10 @@ from lib.layers.rpn.proposal_target_layer import proposal_target_layer
 
 from lib.layers.rpn.rpn_layer import RPN
 from lib.layers.rpn.fpn_layer import FPN
-from lib.layers.loss.wrap_smooth_l1_loss.wrap_smooth_l1_loss import WrapSmoothL1Loss
-from lib.layers.loss.wrap_smooth_l1_loss_py import WrapSmoothL1Loss as WrapSmoothL1Loss_py
+from lib.layers.loss.warp_smooth_l1_loss.warp_smooth_l1_loss import WarpSmoothL1Loss
+from lib.layers.loss.warp_smooth_l1_loss_py import WarpSmoothL1Loss as WarpSmoothL1Loss_py
 
-from lib.layers.roi_data_layer.image_loader import ImageLoader, detection_collate
+from lib.datasets import PascalData, ImageLoader, detection_collate
 import torch
 from torch.autograd import gradcheck
 import torch.nn.functional as F
@@ -164,10 +164,10 @@ def test_fpn():
     optimizer.step()
 
 
-def test_wrap_smooth_l1_loss():
-    warp_smooth_l1_loss = WrapSmoothL1Loss(
+def test_warp_smooth_l1_loss():
+    warp_smooth_l1_loss = WarpSmoothL1Loss(
         sigma=1.0, size_average=False).cuda()
-    warp_smooth_l1_loss_py = WrapSmoothL1Loss_py(sigma=1.0, size_average=False)
+    warp_smooth_l1_loss_py = WarpSmoothL1Loss_py(sigma=1.0, size_average=False)
     smooth_l1_loss = torch.nn.SmoothL1Loss(size_average=False).cuda()
     feature1 = torch.autograd.Variable(
         torch.ones(10, 2)).cuda()  # torch.Tensor(15, 10)
@@ -179,10 +179,10 @@ def test_wrap_smooth_l1_loss():
     print l1, l1_py, l2
 
 
-def test_wrap_smooth_l1_loss_backward():
-    warp_smooth_l1_loss = WrapSmoothL1Loss(
+def test_warp_smooth_l1_loss_backward():
+    warp_smooth_l1_loss = WarpSmoothL1Loss(
         sigma=1.0, size_average=True)  # .cuda()
-    warp_smooth_l1_loss_py = WrapSmoothL1Loss_py(sigma=1.0, size_average=True)
+    warp_smooth_l1_loss_py = WarpSmoothL1Loss_py(sigma=1.0, size_average=True)
     smooth_l1_loss = torch.nn.SmoothL1Loss(size_average=True)  # .cuda()
     feature1 = torch.autograd.Variable(
         torch.ones(10, 2))  # .cuda()  # torch.Tensor(15, 10)
@@ -198,5 +198,39 @@ def test_wrap_smooth_l1_loss_backward():
     print test, test_py, test1
 
 
+def test_pascal_layer():
+
+    loader = PascalData(
+        VOCdevkitRoot='/home/stick/Dataset/VOC/VOCdevkit', trainval=False)
+
+    train_loader = torch.utils.data.DataLoader(
+        loader,
+        batch_size=1, shuffle=True,
+        num_workers=3, collate_fn=detection_collate, pin_memory=True)
+
+    for i, (imgs, im_infos, gt_boxes) in enumerate(train_loader):
+        print imgs.size()
+        # print len(im_infos), [len(im_info) for im_info in im_infos]
+        # print len(gt_boxes), [len(gt_box) for gt_box in gt_boxes]
+        # add
+        len_batch = len(gt_boxes)
+        for batch_idx in range(len_batch):
+            img = imgs.numpy()[batch_idx].transpose(1, 2, 0)
+            gt_box = gt_boxes[batch_idx]
+            print type(gt_boxes), gt_box.shape, gt_box
+            print type(img)
+            img *= 128
+            img += 128.0  # cfg.PIXEL_MEANS
+            img /= 255
+            plt.imshow(img)
+            for box in gt_box:
+                plt.plot([box[0], box[2], box[2], box[0], box[0]], [
+                         box[1], box[1], box[3], box[3], box[1]], 'r-')
+            plt.show()
+            a = raw_input('Continue? ')
+            if a == 'Q' or a == 'q':
+                sys.exit(1)
+
+
 if __name__ == '__main__':
-    test_wrap_smooth_l1_loss_backward()
+    test_pascal_layer()

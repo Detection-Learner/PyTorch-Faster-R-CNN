@@ -25,10 +25,10 @@ cd ../../
 python build.py
 
 # make layers/loss/warp_smooth_l1_loss
-cd ${CURDIR}/../lib/layers/loss/wrap_smooth_l1_loss/src/cuda
+cd ${CURDIR}/../lib/layers/loss/warp_smooth_l1_loss/src/cuda
 
-echo "Compiling wrap smooth l1 loss kernels by nvcc..."
-nvcc -c -o wrap_smooth_l1_loss_kernel.cu.o wrap_smooth_l1_loss_kernel.cu -x cu -Xcompiler -fPIC -arch=${ARCH}
+echo "Compiling warp smooth l1 loss kernels by nvcc..."
+nvcc -c -o warp_smooth_l1_loss_kernel.cu.o warp_smooth_l1_loss_kernel.cu -x cu -Xcompiler -fPIC -arch=${ARCH}
 
 cd ../../
 python build.py

@@ -27,7 +27,7 @@ __C.NCLASSES = 2
 # network name
 __C.NET_NAME = 'vgg16'
 # feature layer
-__C.FEATURE_LAYERS = ['conv5_3',]
+__C.FEATURE_LAYERS = ['conv5_3', ]
 # Pixel mean values (RGB order) as a (1, 1, 3) array
 # We use the same pixel mean for all networks even though it's not exactly what
 # they were trained with
@@ -66,14 +66,6 @@ __C.TRAIN.MAX_SIZE = 1000
 __C.TRAIN.USE_FLIPPED = True
 # Normalize the targets (subtract empirical mean, divide by empirical stddev)
 __C.TRAIN.BBOX_NORMALIZE_TARGETS = True
-# Deprecated (inside weights)
-# used for assigning weights for each coords (x1, y1, w, h)
-__C.TRAIN.BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
-# Normalize the targets using "precomputed" (or made up) means and stdevs
-# (BBOX_NORMALIZE_TARGETS must also be True)
-__C.TRAIN.BBOX_NORMALIZE_TARGETS_PRECOMPUTED = True
-__C.TRAIN.BBOX_NORMALIZE_MEANS = (0.0, 0.0, 0.0, 0.0)
-__C.TRAIN.BBOX_NORMALIZE_STDS = (0.1, 0.1, 0.2, 0.2)
 # If an anchor statisfied by positive and negative conditions set to negative
 __C.TRAIN.RPN_CLOBBER_POSITIVES = False
 # IOU >= thresh: positive example

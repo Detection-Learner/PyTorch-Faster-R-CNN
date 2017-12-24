@@ -3,13 +3,16 @@ import torch
 import shutil
 import time
 import os
+import sys
 import random
 from easydict import EasyDict as edict
 import yaml
 import numpy as np
 
+
 class AverageMeter(object):
     """ Computes ans stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
@@ -25,6 +28,24 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
+
+class ProgressBar(object):
+    def __init__(self, progress_bar_length=20, bar='*'):
+        self.progress_bar_length = progress_bar_length
+        self.bar = bar
+
+    def show_info(self, index, max_length, loss):
+        CLEAR_TO_END = "\033[K"
+        UP_ONE_LINE = "\033[F"
+        c_p = float(index) / max_length
+        star_num = int(c_p * self.progress_bar_length)
+        info = '[{:d}/{:d}] [{}{}] {:.2%} Loss: {}\n'.format(
+            index, max_length, self.bar * star_num, ' ' * (self.progress_bar_length - star_num), c_p, loss)
+        sys.stdout.write(UP_ONE_LINE)
+        sys.stdout.write('\r' + CLEAR_TO_END)
+        sys.stdout.write(info)
+
+
 def get_parameters(model, base_lr):
 
     lr_1 = []
@@ -38,20 +59,24 @@ def get_parameters(model, base_lr):
             lr_1.append(value)
 
     params = [{'params': lr_1, 'lr': base_lr},
-            {'params': lr_2, 'lr': base_lr * 2.}]
+              {'params': lr_2, 'lr': base_lr * 2.}]
 
     return params, [1., 2.]
+
 
 def adjust_learning_rate(optimizer, iters, base_lr, policy_parameter, policy='step', multiple=[1]):
 
     if policy == 'fixed':
         lr = base_lr
     elif policy == 'step':
-        lr = base_lr * (policy_parameter['gamma'] ** (iters // policy_parameter['step_size']))
+        lr = base_lr * (policy_parameter['gamma'] **
+                        (iters // policy_parameter['step_size']))
     elif policy == 'exp':
         lr = base_lr * (policy_parameter['gamma'] ** iters)
     elif policy == 'inv':
-        lr = base_lr * ((1 + policy_parameter['gamma'] * iters) ** (-policy_parameter['power']))
+        lr = base_lr * \
+            ((1 + policy_parameter['gamma'] * iters)
+             ** (-policy_parameter['power']))
     elif policy == 'multistep':
         lr = base_lr
         for stepvalue in policy_parameter['stepvalue']:
@@ -60,9 +85,13 @@ def adjust_learning_rate(optimizer, iters, base_lr, policy_parameter, policy='st
             else:
                 break
     elif policy == 'poly':
-        lr = base_lr * ((1 - iters * 1.0 / policy_parameter['max_iter']) ** policy_parameter['power'])
+        lr = base_lr * \
+            ((1 - iters * 1.0 /
+              policy_parameter['max_iter']) ** policy_parameter['power'])
     elif policy == 'sigmoid':
-        lr = base_lr * (1.0 / (1 + math.exp(-policy_parameter['gamma'] * (iters - policy_parameter['stepsize']))))
+        lr = base_lr * \
+            (1.0 / (1 + math.exp(-policy_parameter['gamma']
+                                 * (iters - policy_parameter['stepsize']))))
     elif policy == 'multistep-poly':
         lr = base_lr
         stepstart = 0
@@ -74,17 +103,21 @@ def adjust_learning_rate(optimizer, iters, base_lr, policy_parameter, policy='st
             else:
                 stepend = stepvalue
                 break
-        lr = max(lr * policy_parameter['gamma'], lr * (1 - (iters - stepstart) * 1.0 / (stepend - stepstart)) ** policy_parameter['power'])
+        lr = max(lr * policy_parameter['gamma'], lr * (1 - (iters - stepstart)
+                                                       * 1.0 / (stepend - stepstart)) ** policy_parameter['power'])
 
     for i, param_group in enumerate(optimizer.param_groups):
         param_group['lr'] = lr * multiple[i]
     return lr
 
+
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
 
     torch.save(state, filename + '_latest.pth.tar')
     if is_best:
-        shutil.copyfile(filename + '_latest.pth.tar', filename + '_best.pth.tar')
+        shutil.copyfile(filename + '_latest.pth.tar',
+                        filename + '_best.pth.tar')
+
 
 def Config(filename):
 

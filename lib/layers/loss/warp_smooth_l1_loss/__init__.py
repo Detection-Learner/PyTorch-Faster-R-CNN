@@ -1,4 +1,4 @@
 #----------------------------------
 # PyTorch Faster R-CNN
-# Written by Hongyu Pan
+# Written by Yuanshun Cui, Hongyu, Pan
 #----------------------------------

@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 
 
-class WrapSmoothL1Loss(nn.Module):
+class WarpSmoothL1Loss(nn.Module):
     def __init__(self, sigma=1.0, size_average=True):
-        super(WrapSmoothL1Loss, self).__init__()
+        super(WarpSmoothL1Loss, self).__init__()
 
         self.sigma = sigma
         self.size_average = size_average

@@ -2,12 +2,12 @@ import torch
 from torch.autograd import Function
 from torch._C import _infer_size
 import torch.nn as nn
-from ._ext import wrap_smooth_l1_loss
+from ._ext import warp_smooth_l1_loss
 
 import numpy as np
 
 
-class WrapSmoothL1LossFunction(Function):
+class WarpSmoothL1LossFunction(Function):
     r"""Creates a criterion that uses a squared term if the absolute
     element-wise error falls below 1 and an L1 term otherwise.
     It is less sensitive to outliers than the `MSELoss` and in some cases
@@ -52,11 +52,11 @@ class WrapSmoothL1LossFunction(Function):
             size_avg = input.size(0)
         if input.is_cuda:
             loss = torch.zeros(1).cuda()
-            wrap_smooth_l1_loss.wrap_smooth_l1_loss_forward_cuda(
+            warp_smooth_l1_loss.warp_smooth_l1_loss_forward_cuda(
                 self.sigma, size_avg, input, target, inside_weights, outside_weights, loss)
         else:
             loss = torch.zeros(1)
-            wrap_smooth_l1_loss.wrap_smooth_l1_loss_forward(
+            warp_smooth_l1_loss.warp_smooth_l1_loss_forward(
                 self.sigma, size_avg, input, target, inside_weights, outside_weights, loss)
 
         self.save_for_backward(input, target, inside_weights, outside_weights)
@@ -77,18 +77,18 @@ class WrapSmoothL1LossFunction(Function):
         if v1.is_cuda:
             grad_input1 = grad_input1.cuda()
             grad_input2 = grad_input2.cuda()
-            wrap_smooth_l1_loss.wrap_smooth_l1_loss_backward_cuda(
+            warp_smooth_l1_loss.warp_smooth_l1_loss_backward_cuda(
                 self.sigma, size_avg, v1, v2, w1, w2, grad_input1, grad_input2, grad_output)
         else:
-            wrap_smooth_l1_loss.wrap_smooth_l1_loss_backward(
+            warp_smooth_l1_loss.warp_smooth_l1_loss_backward(
                 self.sigma, size_avg, v1, v2, w1, w2, grad_input1, grad_input2, grad_output)
 
         return grad_input1, grad_input2, None, None
 
 
-class WrapSmoothL1Loss(nn.Module):
+class WarpSmoothL1Loss(nn.Module):
     def __init__(self, sigma=1.0, size_average=True):
-        super(WrapSmoothL1Loss, self).__init__()
+        super(WarpSmoothL1Loss, self).__init__()
 
         self.sigma = sigma
         self.size_average = size_average
@@ -116,4 +116,4 @@ class WrapSmoothL1Loss(nn.Module):
                     outside_weights)
         if input.is_cuda:
             outside_weights = outside_weights.cuda()
-        return WrapSmoothL1LossFunction(self.sigma, self.size_average)(input, target, inside_weights, outside_weights)
+        return WarpSmoothL1LossFunction(self.sigma, self.size_average)(input, target, inside_weights, outside_weights)

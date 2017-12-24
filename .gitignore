@@ -2,3 +2,4 @@
 *.so
 *.pyc
 *.ipynb
+*.pth

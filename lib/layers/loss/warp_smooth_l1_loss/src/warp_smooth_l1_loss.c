@@ -7,7 +7,7 @@
 #include <TH/TH.h>
 #include <math.h>
 
-int wrap_smooth_l1_loss_forward(float sigma, int number,
+int warp_smooth_l1_loss_forward(float sigma, int number,
                       THFloatTensor * inputs, THFloatTensor * targets,
                       THFloatTensor * inside_weights, THFloatTensor * outside_weights, THFloatTensor * output)
 {
@@ -55,7 +55,7 @@ int wrap_smooth_l1_loss_forward(float sigma, int number,
     return 1;
 }
 
-int wrap_smooth_l1_loss_backward(float sigma, int number,
+int warp_smooth_l1_loss_backward(float sigma, int number,
                       THFloatTensor * inputs, THFloatTensor * targets,
                       THFloatTensor * inside_weights, THFloatTensor * outside_weights,
                       THFloatTensor * grad_input1, THFloatTensor * grad_input2, THFloatTensor * grad_output)

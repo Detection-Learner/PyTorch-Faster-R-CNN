@@ -9,14 +9,14 @@ extern "C" {
 #include <stdio.h>
 #include <math.h>
 #include <float.h>
-#include "wrap_smooth_l1_loss_kernel.h"
+#include "warp_smooth_l1_loss_kernel.h"
 
 #define CUDA_KERNEL_LOOP(i, n) \
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; \
        i < (n); \
        i += blockDim.x * gridDim.x)
 
-__global__ void WrapSmoothL1LossForward(const int nthreads, const float sigma2,
+__global__ void WarpSmoothL1LossForward(const int nthreads, const float sigma2,
                                const float * data_inputs, const float * data_targets,
                                const float * data_inside_weights, const float * data_outside_weights,
                                float * output_flat)
@@ -37,7 +37,7 @@ __global__ void WrapSmoothL1LossForward(const int nthreads, const float sigma2,
     }
 }
 
-int WrapSmoothL1LossForwardLaucher(const int data_num, const float sigma2,
+int WarpSmoothL1LossForwardLaucher(const int data_num, const float sigma2,
                                const float * data_inputs, const float * data_targets,
                                const float * data_inside_weights, const float * data_outside_weights,
                                float * output_flat, cudaStream_t stream)
@@ -45,7 +45,7 @@ int WrapSmoothL1LossForwardLaucher(const int data_num, const float sigma2,
     const int kThreadsPerBlock = 1024;
     cudaError_t err;
 
-    WrapSmoothL1LossForward<<<(data_num + kThreadsPerBlock - 1) / kThreadsPerBlock, kThreadsPerBlock, 0, stream>>>(
+    WarpSmoothL1LossForward<<<(data_num + kThreadsPerBlock - 1) / kThreadsPerBlock, kThreadsPerBlock, 0, stream>>>(
         data_num, sigma2, data_inputs, data_targets, data_inside_weights, data_outside_weights,
         output_flat);
 
@@ -59,7 +59,7 @@ int WrapSmoothL1LossForwardLaucher(const int data_num, const float sigma2,
     return 1;
 }
 
-__global__ void WrapSmoothL1LossBackward(const int nthreads, const float sigma2, const int number,
+__global__ void WarpSmoothL1LossBackward(const int nthreads, const float sigma2, const int number,
                                const float * data_inputs, const float * data_targets,
                                const float * data_inside_weights, const float * data_outside_weights,
                                float * input_flat1, float * input_flat2,
@@ -82,7 +82,7 @@ __global__ void WrapSmoothL1LossBackward(const int nthreads, const float sigma2,
     }
 }
 
-int WrapSmoothL1LossBackwardLaucher(const int data_num, const float sigma2, const int number,
+int WarpSmoothL1LossBackwardLaucher(const int data_num, const float sigma2, const int number,
                                const float * data_inputs, const float * data_targets,
                                const float * data_inside_weights, const float * data_outside_weights,
                                float * input_flat1, float * input_flat2,
@@ -91,7 +91,7 @@ int WrapSmoothL1LossBackwardLaucher(const int data_num, const float sigma2, cons
     const int kThreadsPerBlock = 1024;
     cudaError_t err;
 
-    WrapSmoothL1LossBackward<<<(data_num + kThreadsPerBlock - 1) / kThreadsPerBlock, kThreadsPerBlock, 0, stream>>>(
+    WarpSmoothL1LossBackward<<<(data_num + kThreadsPerBlock - 1) / kThreadsPerBlock, kThreadsPerBlock, 0, stream>>>(
         data_num, sigma2, number, data_inputs, data_targets, data_inside_weights, data_outside_weights,
         input_flat1, input_flat2, output_flat);
 

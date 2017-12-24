@@ -4,7 +4,7 @@ import torch
 import torch.utils.data as data
 import math
 from PIL import Image
-from ...utils.config import cfg
+from ..utils.config import cfg
 
 
 def _read_data_list(file_path):
@@ -68,7 +68,7 @@ def detection_collate(batch):
     images = np.ascontiguousarray(images)
 
     # normalize
-    #images = (images - cfg.PIXEL_MEANS)  # / 128.0
+    # images = (images - cfg.PIXEL_MEANS)  # / 128.0
     images = (images - 128.) / 128.
     images = images.transpose((0, 3, 1, 2))
     images = np.ascontiguousarray(images).astype(np.float32)
@@ -83,7 +83,7 @@ def transform(img, gt_box):
 
     width, height = img.size
 
-    if cfg.TRAIN.USE_FLIPPED ==True:
+    if cfg.TRAIN.USE_FLIPPED == True:
         seed = random.uniform(0, 1)
         if seed < 0.5:
             img = img.transpose(Image.FLIP_LEFT_RIGHT)

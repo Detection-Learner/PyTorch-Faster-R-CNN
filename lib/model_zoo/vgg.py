@@ -104,7 +104,7 @@ def make_feat_modules(cfg, feature_layers, batch_norm=False):
 
     # the last feature of vgg network must in the output feature list
     if cfg[-1][1] not in feature_layers:
-        feature_layers.append(cfg[-2][1])
+        feature_layers.append(cfg[-1][1])
 
     for (v, layer_name) in cfg:
         if v == 'M':
